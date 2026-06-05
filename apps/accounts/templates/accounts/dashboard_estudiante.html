@@ -1,0 +1,726 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}My Dashboard - NestGrow{% endblock %}
+
+{% block extra_css %}
+<style>
+  @keyframes miloFloat {
+    0%,100% { transform: translateY(0) rotate(-1deg); }
+    50%      { transform: translateY(-12px) rotate(1deg); }
+  }
+  @keyframes starFloat {
+    0%,100% { transform: translateY(0) rotate(0deg); opacity:0.7; }
+    50%      { transform: translateY(-8px) rotate(15deg); opacity:1; }
+  }
+  @keyframes progressPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(108,99,255,0.3); }
+    50%      { box-shadow: 0 0 0 6px rgba(108,99,255,0); }
+  }
+  @keyframes fadeInUp {
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes bounceIn {
+    0%   { opacity:0; transform:translateY(30px) scale(0.9); }
+    60%  { transform:translateY(-6px) scale(1.02); }
+    100% { opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  .dash-hero {
+    background: linear-gradient(135deg, #6C63FF, #9c94ff);
+    border-radius: 28px;
+    padding: 2rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .dash-hero::before {
+    content:'';
+    position:absolute;
+    width:200px;height:200px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.08);
+    top:-60px;right:-60px;
+  }
+  .dash-hero::after {
+    content:'';
+    position:absolute;
+    width:150px;height:150px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.05);
+    bottom:-40px;left:20%;
+  }
+
+  .stat-card-new {
+    background: white;
+    border-radius: 20px;
+    padding: 1.2rem;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(108,99,255,0.1);
+    transition: all 0.3s;
+    border-top: 4px solid var(--primary);
+    animation: fadeInUp 0.5s ease both;
+  }
+  .stat-card-new:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(108,99,255,0.2); }
+  .stat-number-new {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--primary);
+  }
+  .stat-label-new { font-size: 0.8rem; font-weight: 700; color: #888; margin-top: 4px; }
+
+  .quick-card {
+    border-radius: 20px;
+    padding: 1.2rem;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    transition: all 0.3s;
+    text-decoration: none;
+    display: block;
+    animation: bounceIn 0.5s ease both;
+  }
+  .quick-card:hover {
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    filter: brightness(1.05);
+  }
+  .quick-icon {
+    width: 60px; height: 60px;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.8rem;
+    font-size: 1.6rem;
+  }
+
+  .progress-nestgrow {
+    height: 14px;
+    border-radius: 20px;
+    background: #f0eeff;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+  .progress-fill-new {
+    height: 100%;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #6C63FF, #9c94ff);
+    transition: width 1s ease;
+    animation: progressPulse 2s infinite;
+  }
+
+  .game-progress-card {
+    background: white;
+    border-radius: 18px;
+    padding: 1rem 1.2rem;
+    box-shadow: 0 6px 20px rgba(108,99,255,0.08);
+    border: 2px solid #f0eeff;
+    transition: all 0.3s;
+  }
+  .game-progress-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-3px);
+  }
+
+  .section-title {
+    font-family: 'Fredoka One', cursive;
+    color: var(--primary);
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .level-pill {
+    background: linear-gradient(135deg, #FFE66D, #FFB347);
+    color: #333;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    padding: 6px 18px;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(255,179,71,0.3);
+  }
+
+  .logro-badge {
+    background: white;
+    border-radius: 18px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(108,99,255,0.1);
+    transition: all 0.3s;
+    border: 2px solid transparent;
+  }
+  .logro-badge:hover { transform: translateY(-4px); }
+
+  .star-deco {
+    position: absolute;
+    animation: starFloat 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+
+<!-- ===== MODAL EMOJI KITCHEN ===== -->
+<div id="avatarModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:24px; padding:24px; max-width:440px; width:92%; margin:auto; max-height:90vh; overflow-y:auto;">
+    <h4 class="font-fredoka text-center mb-1" style="color:var(--primary); font-size:1.5rem">
+      <i class="bi bi-egg-fried"></i> Mix your emojis!
+    </h4>
+    <p class="text-center text-muted fw-bold small mb-3">Choose two emojis and Milo mixes them to create your unique character</p>
+    <div class="text-center mb-3">
+      <div style="position:relative; display:inline-block;">
+        <img id="kitchenResult" src="" alt="avatar" style="width:90px; height:90px; border-radius:50%; display:none; border:4px solid white; box-shadow:0 4px 20px rgba(108,99,255,0.35);">
+        <div id="kitchenFallback" style="width:90px; height:90px; border-radius:50%; background:var(--primary); display:inline-flex; align-items:center; justify-content:center; font-size:2.5rem; border:4px solid white; box-shadow:0 4px 20px rgba(108,99,255,0.35);">🐶</div>
+      </div>
+      <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+        <span id="sel1Display" style="font-size:1.8rem">🐶</span>
+        <span style="font-weight:700; color:var(--primary)">+</span>
+        <span id="sel2Display" style="font-size:1.8rem">🐱</span>
+        <span style="font-weight:700; color:var(--primary)">=</span>
+        <span id="mixStatus" style="font-size:0.8rem; font-weight:700; color:var(--accent)">
+          <i class="bi bi-stars"></i> Mezclando...
+        </span>
+      </div>
+      <div id="miloMsg" style="display:none; margin-top:8px; background:#f0eeff; border-radius:12px; padding:10px 14px; font-size:0.85rem; font-weight:700; color:var(--primary)">
+        <img src="{% static 'img/milo_fest.png' %}" style="width:32px;height:32px;object-fit:contain;vertical-align:middle">
+        <span id="miloMsgText"></span>
+      </div>
+    </div>
+    <p class="fw-bold small mb-1" style="color:var(--primary)">
+      <i class="bi bi-1-square-fill"></i> First emoji:
+    </p>
+    <div id="tabs1" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;"></div>
+    <div id="grid1" style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:14px;"></div>
+    <p class="fw-bold small mb-1" style="color:var(--primary)">
+      <i class="bi bi-2-square-fill"></i> Second emoji:
+    </p>
+    <div id="tabs2" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;"></div>
+    <div id="grid2" style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:20px;"></div>
+    <button onclick="guardarAvatar()" class="btn btn-nestgrow btn-primary-nestgrow w-100" style="font-size:1.05rem">
+      <i class="bi bi-check-circle-fill"></i> This is my character!
+    </button>
+    <button onclick="cerrarAvatar()" class="btn btn-outline-secondary w-100 mt-2 rounded-pill">Cancel</button>
+  </div>
+</div>
+
+<div class="container py-4">
+
+  <!-- HERO BANNER -->
+  <div class="dash-hero">
+    <span class="star-deco" style="top:10%;left:2%;font-size:1.2rem;animation-delay:0s">
+      <i class="bi bi-star-fill" style="color:rgba(255,255,255,0.4)"></i>
+    </span>
+    <span class="star-deco" style="top:20%;left:5%;font-size:0.8rem;animation-delay:0.5s">
+      <i class="bi bi-sparkle-fill" style="color:rgba(255,255,255,0.3)"></i>
+    </span>
+    <span class="star-deco" style="bottom:15%;right:25%;font-size:1rem;animation-delay:1s">
+      <i class="bi bi-star-fill" style="color:rgba(255,255,255,0.3)"></i>
+    </span>
+
+    <div class="row align-items-center">
+      <div class="col-md-7 position-relative" style="z-index:1">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div onclick="abrirAvatar()" style="cursor:pointer;position:relative;flex-shrink:0">
+            {% if profile.avatar_kitchen_url %}
+              <img id="miAvatarImg" src="{{ profile.avatar_kitchen_url }}"
+                   style="width:70px;height:70px;border-radius:50%;display:block;
+                          border:3px solid rgba(255,255,255,0.5);
+                          box-shadow:0 4px 15px rgba(0,0,0,0.2);object-fit:cover;">
+              <div id="miAvatarFallback" style="display:none;width:70px;height:70px;border-radius:50%;
+                          background:rgba(255,255,255,0.2);align-items:center;
+                          justify-content:center;font-size:2rem;">
+                {{ profile.avatar_emoji1|default:'🐶' }}
+              </div>
+            {% else %}
+              <img id="miAvatarImg" src="" style="display:none;width:70px;height:70px;border-radius:50%;">
+              <div id="miAvatarFallback"
+                   style="width:70px;height:70px;border-radius:50%;
+                          background:rgba(255,255,255,0.2);display:flex;
+                          align-items:center;justify-content:center;font-size:2rem;
+                          border:3px solid rgba(255,255,255,0.4);">
+                {{ profile.avatar_emoji1|default:'🐶' }}
+              </div>
+            {% endif %}
+            <div style="position:absolute;bottom:-2px;right:-2px;background:rgb(252,83,83);
+                        border-radius:50%;width:22px;height:22px;display:flex;
+                        align-items:center;justify-content:center;font-size:0.65rem;
+                        box-shadow:0 2px 6px rgba(0,0,0,0.2)">
+              <i class="bi bi-pencil-fill" style="color:white"></i>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:'Fredoka One',cursive;font-size:1.8rem;line-height:1">
+              Hello, {{ user.first_name }}! <i class="bi bi-emoji-laughing-fill"></i>
+            </div>
+            <div style="opacity:0.85;font-weight:700;font-size:0.95rem">
+              Milo is very proud of your progress
+            </div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <div class="px-3 py-1 rounded-pill fw-bold"
+               style="background:rgba(255,255,255,0.2);font-size:0.85rem">
+            <i class="bi bi-trophy-fill me-1" style="color:#FFE66D"></i>
+            Level {{ profile.nivel }}
+          </div>
+          <div class="px-3 py-1 rounded-pill fw-bold"
+               style="background:rgba(255,255,255,0.2);font-size:0.85rem">
+            <i class="bi bi-star-fill me-1" style="color:#FFE66D"></i>
+            {{ profile.puntos_totales }} pts
+          </div>
+          <div class="px-3 py-1 rounded-pill fw-bold"
+               style="background:rgba(255,255,255,0.2);font-size:0.85rem">
+            <i class="bi bi-heart-fill me-1" style="color:#FF6B6B"></i>
+            {{ user.huesos }} bones
+          </div>
+        </div>
+      </div>
+      <div class="col-md-5 text-center d-none d-md-block" style="position:relative;z-index:1">
+        <img src="{% static 'img/milo_orgulloso.png' %}" alt="Milo"
+             style="width:160px;filter:drop-shadow(0 10px 25px rgba(0,0,0,0.2));
+                    animation:miloFloat 4s ease-in-out infinite;">
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESO DE NIVEL -->
+  <div class="nestgrow-card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="section-title mb-0">
+        <i class="bi bi-rocket-takeoff-fill" style="color:var(--primary)"></i>
+        Your Progress
+      </div>
+      <span class="level-pill">Level {{ profile.nivel }}</span>
+    </div>
+    <div class="progress-nestgrow">
+      <div class="progress-fill-new"
+           style="width:{% widthratio profile.puntos_totales puntos_requeridos 100 %}%;max-width:100%">
+      </div>
+    </div>
+    <div class="d-flex justify-content-between mt-1">
+      <span class="text-muted small fw-bold">
+        <i class="bi bi-star-fill me-1" style="color:#FFB347"></i>
+        {{ profile.puntos_totales }} / {{ puntos_requeridos }} pts for level {{ profile.nivel|add:1 }}
+      </span>
+      {% if profile.nivel >= 10 %}
+      <span class="badge rounded-pill" style="background:var(--yellow);color:#333">
+        <i class="bi bi-trophy-fill me-1"></i>Max Level!
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ACCESOS RÁPIDOS -->
+  <div class="section-title">
+    <i class="bi bi-lightning-charge-fill" style="color:#FFB347"></i>
+    Quick Access
+  </div>
+  <div class="row g-3 mb-4">
+
+    <div class="col-6 col-md-3">
+      <a href="{% url 'games:mis_logros' %}" class="quick-card"
+         style="background:linear-gradient(135deg,#FFB347,#ffd080)">
+        <div class="quick-icon" style="background:rgba(255,255,255,0.2)">
+          <i class="bi bi-award-fill" style="color:white"></i>
+        </div>
+        <div class="fw-bold small" style="color:white">
+          My Achievements
+          {% if logros_pendientes > 0 %}
+          <span class="badge rounded-pill ms-1"
+                style="background:white;color:#FFB347;font-size:0.65rem">
+            {{ logros_pendientes }}
+          </span>
+          {% endif %}
+        </div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.8);font-weight:700">Your medals</div>
+      </a>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <a href="{% url 'games:ranking_salon' %}" class="quick-card"
+         style="background:linear-gradient(135deg,#FF6B6B,#ff9494)">
+        <div class="quick-icon" style="background:rgba(255,255,255,0.2)">
+          <i class="bi bi-bar-chart-fill" style="color:white"></i>
+        </div>
+        <div class="fw-bold small" style="color:white">Ranking</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.8);font-weight:700">Where do you rank?</div>
+      </a>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <a href="{% url 'content:mi_vocabulario' %}" class="quick-card"
+         style="background:linear-gradient(135deg,#4ECDC4,#7ee8e2)">
+        <div class="quick-icon" style="background:rgba(255,255,255,0.2)">
+          <i class="bi bi-book-fill" style="color:white"></i>
+        </div>
+        <div class="fw-bold small" style="color:white">Vocabulary</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.8);font-weight:700">My words</div>
+      </a>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <a href="{% url 'games:habitacion_milo' %}" class="quick-card"
+         style="background:linear-gradient(135deg,#74B9FF,#a8d4ff)">
+        <div class="quick-icon" style="background:rgba(255,255,255,0.2)">
+          <i class="bi bi-house-heart-fill" style="color:white"></i>
+        </div>
+        <div class="fw-bold small" style="color:white">My Room</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.8);font-weight:700">Your Milo space</div>
+      </a>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <a href="{% url 'games:tienda' %}" class="quick-card"
+         style="background:linear-gradient(135deg,#FD79A8,#ffaac8)">
+        <div class="quick-icon" style="background:rgba(255,255,255,0.2)">
+          <i class="bi bi-shop" style="color:white"></i>
+        </div>
+        <div class="fw-bold small" style="color:white">Store</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.8);font-weight:700">Spend your bones</div>
+      </a>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <a href="{% url 'talleres:mis_talleres' %}" class="quick-card"
+         style="background:linear-gradient(135deg,#55EFC4,#81f5d4)">
+        <div class="quick-icon" style="background:rgba(255,255,255,0.2)">
+          <i class="bi bi-clipboard2-check-fill" style="color:white"></i>
+        </div>
+        <div class="fw-bold small" style="color:white">My Activities</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.8);font-weight:700">Workshops and minigames</div>
+      </a>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <a href="{% url 'historia:mapa_historia' %}" class="quick-card"
+         style="background:linear-gradient(135deg,#a29bfe,#c4b0ff)">
+        <div class="quick-icon" style="background:rgba(255,255,255,0.2)">
+          <i class="bi bi-map-fill" style="color:white"></i>
+        </div>
+        <div class="fw-bold small" style="color:white">Adventure</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.8);font-weight:700">Travel with Milo</div>
+      </a>
+    </div>
+
+  </div>
+
+  <!-- SALÓN + AVENTURA (lado a lado) -->
+  <div class="row g-3 mb-4">
+
+    <!-- ── Tarjeta Salón / Profesor ── -->
+    <div class="col-12 col-md-6">
+      {% if not profile.salon %}
+      <div class="nestgrow-card p-4 h-100 d-flex flex-column align-items-center justify-content-center text-center"
+           style="border:3px dashed var(--accent);background:linear-gradient(135deg,#f0fffe,#fff)">
+        <div style="width:64px;height:64px;border-radius:20px;background:#f0fffe;
+                    display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+          <i class="bi bi-building-fill" style="color:var(--accent);font-size:1.8rem"></i>
+        </div>
+        <div class="fw-bold fs-5 mb-1">Join your class!</div>
+        <div class="text-muted fw-bold small mb-3">Ask your teacher for the code.</div>
+        <a href="{% url 'accounts:unirse_clase' %}"
+           class="btn btn-nestgrow btn-primary-nestgrow">Join →</a>
+      </div>
+
+      {% else %}
+      <div class="nestgrow-card p-4 h-100"
+           style="border-top:4px solid var(--primary);background:linear-gradient(160deg,#f6f4ff,#fff)">
+
+        <!-- Foto del profesor (grande y centrada) -->
+        <div class="text-center mb-3">
+          {% if profesor_profile and profesor_profile.foto_perfil %}
+            <img src="{{ profesor_profile.foto_perfil.url }}"
+                 alt="Foto del profe"
+                 style="width:90px;height:90px;border-radius:50%;object-fit:cover;
+                        border:4px solid var(--primary);
+                        box-shadow:0 6px 20px rgba(108,99,255,0.25)">
+          {% else %}
+            <div style="width:90px;height:90px;border-radius:50%;margin:0 auto;
+                        background:linear-gradient(135deg,var(--primary),#9c94ff);
+                        display:flex;align-items:center;justify-content:center;
+                        border:4px solid #e8e4ff;
+                        box-shadow:0 6px 20px rgba(108,99,255,0.2)">
+              <i class="bi bi-person-fill" style="color:white;font-size:2.4rem"></i>
+            </div>
+          {% endif %}
+
+          {% if profesor_profile %}
+          <div class="fw-bold mt-2" style="color:var(--primary);font-size:1.05rem">
+            {{ profesor_profile.user.get_full_name|default:profesor_profile.user.username }}
+          </div>
+          <div class="text-muted fw-bold" style="font-size:0.8rem">
+            {% if profesor_profile.institucion %}
+              <i class="bi bi-bank2 me-1"></i>{{ profesor_profile.institucion }}
+            {% else %}
+              👩‍🏫 Your teacher
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Separador -->
+        <hr style="border-color:#e8e4ff;margin:0.75rem 0">
+
+        <!-- Info del salón -->
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:38px;height:38px;border-radius:12px;background:#f0fffe;flex-shrink:0;
+                      display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-building-fill" style="color:var(--accent);font-size:1rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold" style="font-size:1rem">
+              {{ profile.salon.nombre }}
+              <span class="badge rounded-pill ms-1"
+                    style="background:#f0fffe;color:var(--accent);font-size:0.7rem">
+                {{ profile.salon.get_grado_display }}
+              </span>
+            </div>
+            <div class="text-muted small fw-bold">Your classroom</div>
+          </div>
+        </div>
+
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Tarjeta Aventura ── -->
+    <div class="col-12 col-md-6">
+      <div class="nestgrow-card p-4 h-100 d-flex flex-column"
+           style="border-top:4px solid #6C63FF;background:linear-gradient(160deg,#f6f4ff,#fff)">
+
+        <!-- Encabezado -->
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="section-title mb-0">
+            <i class="bi bi-map-fill" style="color:#6C63FF"></i>
+            Adventure
+          </div>
+          {% if historia_primera_incompleta %}
+          <a href="{% url 'historia:ver_leccion' pk=historia_primera_incompleta.leccion_pk %}"
+             class="btn btn-sm rounded-pill fw-bold"
+             style="background:linear-gradient(135deg,#6C63FF,#9c94ff);color:white">
+            <i class="bi bi-play-fill me-1"></i>Continue
+          </a>
+          {% else %}
+          <a href="{% url 'historia:mapa_historia' %}"
+             class="btn btn-sm rounded-pill fw-bold"
+             style="background:linear-gradient(135deg,#6C63FF,#9c94ff);color:white">
+            <i class="bi bi-map-fill me-1"></i>Explore
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- Estrellas (grande) -->
+        <div class="d-flex align-items-center gap-3 flex-grow-1">
+          <div class="text-center px-3 py-3 rounded-3 flex-shrink-0"
+               style="background:rgba(108,99,255,0.09);min-width:90px">
+            <div style="font-family:'Fredoka One',cursive;font-size:2.2rem;color:#6C63FF;line-height:1">
+              {{ profile.total_estrellas_historia }}
+            </div>
+            <div style="font-size:1.3rem;line-height:1">⭐</div>
+            <div style="font-size:.72rem;color:#888;font-weight:700;margin-top:2px">stars</div>
+          </div>
+
+          <!-- Descripción -->
+          {% if historia_primera_incompleta %}
+          <div>
+            <div class="fw-bold" style="color:#6C63FF;font-size:1rem">
+              {{ historia_primera_incompleta.seccion_titulo }}
+            </div>
+            {% if historia_primera_incompleta.seccion_emoji %}
+            <div style="font-size:1.4rem;line-height:1.2">{{ historia_primera_incompleta.seccion_emoji }}</div>
+            {% endif %}
+            <div class="text-muted fw-bold" style="font-size:0.8rem">Next unlocked lesson</div>
+          </div>
+          {% elif profile.total_estrellas_historia > 0 %}
+          <div>
+            <div class="fw-bold" style="color:#6C63FF;font-size:1rem">Incredible!</div>
+            <div class="text-muted fw-bold" style="font-size:0.82rem">
+              You have completed all available lessons.
+            </div>
+          </div>
+          {% else %}
+          <div>
+            <div class="fw-bold" style="color:#6C63FF;font-size:1rem">Start your adventure!</div>
+            <div class="text-muted fw-bold" style="font-size:0.82rem">
+              Explore the map and complete lessons to earn stars.
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /row salón + aventura -->
+
+  <!-- LOGROS RECIENTES -->
+  {% if logros_recientes %}
+  <div class="nestgrow-card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="section-title mb-0">
+        <i class="bi bi-award-fill" style="color:#FFB347"></i>
+        Recent Achievements
+      </div>
+      <a href="{% url 'games:mis_logros' %}"
+         class="btn btn-sm btn-outline-primary rounded-pill">View all</a>
+    </div>
+    <div class="d-flex gap-3 flex-wrap">
+      {% for lu in logros_recientes %}
+      <div class="logro-badge" style="border-color:{{ lu.logro.color }}30;min-width:90px">
+        <div style="font-size:2rem">{{ lu.logro.icono }}</div>
+        <div class="fw-bold small mt-1" style="color:{{ lu.logro.color }}">
+          {{ lu.logro.nombre }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CATS = [
+  { label: '😀 Faces',      emojis: ['😀','😂','🤣','😊','😍','🤩','😎','🥳','😜','🤔','😴','🥺','😭','😤','😡'] },
+  { label: '🐶 Animals',   emojis: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵'] },
+  { label: '🌸 Nature', emojis: ['🌸','🌺','🌻','🌹','🌷','🍀','🌿','🌴','🌵','🌙','⭐','🌟','✨','🌈','🔥'] },
+  { label: '🍕 Food',     emojis: ['🍕','🍔','🍟','🌮','🍜','🍣','🍩','🍪','🎂','🍎','🍊','🍋','🍇','🍓','🍒'] },
+  { label: '🎮 Objects',    emojis: ['🎮','⚽','🏀','🎯','🎲','🎸','🎨','📚','🏆','🥇','🎁','🎈','❤️','💜','💙'] },
+];
+const DATES = ['20230803','20221101','20220815','20220406','20210521','20201001'];
+
+let sel1 = '{{ profile.avatar_emoji1|default:"😀" }}';
+let sel2 = '{{ profile.avatar_emoji2|default:"🐶" }}';
+let tab1 = 0, tab2 = 1;
+let kitchenUrl = '{{ profile.avatar_kitchen_url }}';
+
+function toHex(e) {
+  return [...e].map(c => c.codePointAt(0).toString(16))
+               .filter(h => h !== 'fe0f' && h !== '200d').join('-');
+}
+function checkImg(url) {
+  return new Promise(resolve => {
+    const i = new Image();
+    i.onload = () => resolve(url);
+    i.onerror = () => resolve(null);
+    i.src = url;
+  });
+}
+async function buscarKitchen(e1, e2) {
+  const h1 = toHex(e1), h2 = toHex(e2);
+  for (const d of DATES) {
+    const base = `https://www.gstatic.com/android/keyboard/emojikitchen/${d}`;
+    const r = await checkImg(`${base}/u${h1}/u${h1}_u${h2}.png`);
+    if (r) return r;
+    const r2 = await checkImg(`${base}/u${h2}/u${h2}_u${h1}.png`);
+    if (r2) return r2;
+  }
+  return null;
+}
+function abrirAvatar() {
+  document.getElementById('avatarModal').style.display = 'flex';
+  renderTabs(1); renderGrid(1);
+  renderTabs(2); renderGrid(2);
+  mezclar();
+}
+function cerrarAvatar() {
+  document.getElementById('avatarModal').style.display = 'none';
+}
+function renderTabs(slot) {
+  const activeIdx = slot === 1 ? tab1 : tab2;
+  document.getElementById(`tabs${slot}`).innerHTML = CATS.map((c, i) =>
+    `<button class="btn btn-sm rounded-pill px-2 py-1 me-1 mb-1 ${i===activeIdx?'btn-primary':'btn-outline-secondary'}"
+       style="font-size:0.7rem" onclick="setTab(${slot},${i})">${c.label}</button>`
+  ).join('');
+}
+function renderGrid(slot) {
+  const activeIdx = slot === 1 ? tab1 : tab2;
+  const sel = slot === 1 ? sel1 : sel2;
+  document.getElementById(`grid${slot}`).innerHTML = CATS[activeIdx].emojis.map(e =>
+    `<button class="btn p-1 rounded ${e===sel?'btn-primary':''}" style="font-size:1.4rem;line-height:1"
+       onclick="pick(${slot},'${e}')">${e}</button>`
+  ).join('');
+}
+function setTab(slot, idx) {
+  if (slot === 1) { tab1 = idx; } else { tab2 = idx; }
+  renderTabs(slot); renderGrid(slot);
+}
+function pick(slot, e) {
+  if (slot === 1) { sel1 = e; document.getElementById('sel1Display').textContent = e; }
+  else            { sel2 = e; document.getElementById('sel2Display').textContent = e; }
+  renderGrid(slot);
+  mezclar();
+}
+async function mezclar() {
+  const imgEl    = document.getElementById('kitchenResult');
+  const fallback = document.getElementById('kitchenFallback');
+  const status   = document.getElementById('mixStatus');
+  const miloMsg  = document.getElementById('miloMsg');
+  const miloText = document.getElementById('miloMsgText');
+  document.getElementById('sel1Display').textContent = sel1 || '?';
+  document.getElementById('sel2Display').textContent = sel2 || '?';
+  if (!sel1 || !sel2) { status.innerHTML = '<i class="bi bi-stars"></i> Choose two emojis'; return; }
+  status.innerHTML = '<span class="spinner-border spinner-border-sm align-middle me-1"></span>Mixing...';
+  imgEl.style.display = 'none';
+  fallback.style.display = 'inline-flex';
+  fallback.textContent = sel1 + sel2;
+  miloMsg.style.display = 'none';
+  const url = await buscarKitchen(sel1, sel2);
+  kitchenUrl = url || '';
+  if (url) {
+    imgEl.src = url;
+    imgEl.style.display = 'block';
+    fallback.style.display = 'none';
+    status.innerHTML = '<i class="bi bi-stars"></i> What a combination!';
+    miloMsg.style.display = 'block';
+    miloText.textContent = 'I love it! This mix is unique 🎨';
+  } else {
+    imgEl.style.display = 'none';
+    fallback.style.display = 'inline-flex';
+    fallback.innerHTML = `<span style="font-size:2rem">${sel1}${sel2}</span>`;
+    status.innerHTML = '<i class="bi bi-emoji-smile"></i> Your unique combo!';
+    miloMsg.style.display = 'block';
+    miloText.textContent = 'This combination is all yours! 😄';
+  }
+}
+async function guardarAvatar() {
+  if (!sel1 || !sel2) { alert('Choose 2 emojis first!'); return; }
+  const btn = document.querySelector('#avatarModal button[onclick="guardarAvatar()"]');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...'; }
+  try {
+    const r = await fetch('{% url "accounts:guardar_avatar" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify({ emoji1: sel1, emoji2: sel2, color: '#6C63FF', kitchen_url: kitchenUrl })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      const imgHero = document.getElementById('miAvatarImg');
+      const divHero = document.getElementById('miAvatarFallback');
+      if (kitchenUrl && imgHero) {
+        imgHero.src = kitchenUrl;
+        imgHero.style.display = 'block';
+        if (divHero) divHero.style.display = 'none';
+      } else if (divHero) {
+        divHero.textContent = sel1;
+        divHero.style.display = 'flex';
+      }
+      cerrarAvatar();
+    } else {
+      alert('Error saving. Please try again.');
+    }
+  } catch(e) {
+    alert('Network error. Please try again.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> This is my character!'; }
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }} - NestGrow{% endblock %}
+
+{% block extra_css %}
+<style>
+  #painting-words-section { display:none; margin-top:20px; }
+  #imagenes-create-section { display:none; }
+  .word-tag {
+    background:#f0eeff; border:2px solid var(--primary); border-radius:50px;
+    padding:6px 14px; font-weight:700; color:var(--primary);
+    display:inline-flex; align-items:center; gap:8px; font-size:0.95rem;
+  }
+  .word-tag .remove-word { cursor:pointer; color:var(--secondary); font-size:1.1rem; line-height:1; }
+  .word-tag .remove-word:hover { color:#c0392b; }
+  .img-item-row {
+    display:flex; align-items:center; gap:12px;
+    background:#f8f6ff; border:2px solid #e8e4ff; border-radius:12px; padding:10px 14px;
+  }
+  .img-item-row img { width:56px; height:56px; object-fit:cover; border-radius:8px; flex-shrink:0; }
+  .img-item-row:hover { border-color:#b8b0ff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:760px">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'talleres:lista_periodos' %}" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-caret-left-fill me-1"></i> Volver</a>
+    <h3 class="font-fredoka mb-0" style="color:var(--primary)">🎮 {{ titulo }}</h3>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-success fw-bold rounded-3 mb-3">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Config card -->
+  <div class="nestgrow-card p-4 mb-4">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="painting_words" id="paintingWordsInput" value="">
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.title.label }}</label>
+          {{ form.title }}
+          {% if form.title.errors %}<div class="text-danger small fw-bold mt-1">{{ form.title.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.title_en.label }}</label>
+          {{ form.title_en }}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-bold">{{ form.description.label }}</label>
+          {{ form.description }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.game_type.label }}</label>
+          {{ form.game_type }}
+          {% if form.game_type.errors %}<div class="text-danger small fw-bold mt-1">{{ form.game_type.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.category.label }}</label>
+          {{ form.category }}
+          {% if form.category.errors %}<div class="text-danger small fw-bold mt-1">{{ form.category.errors.0 }}</div>{% endif %}
+          <div class="text-muted small mt-1">¿No ves tu categoría? <a href="{% url 'games:crear_categoria' %}">Créala aquí →</a></div>
+        </div>
+
+        <!-- Palabras para pintar -->
+        <div class="col-12" id="painting-words-section">
+          <div class="nestgrow-card p-4" style="border:2px solid #e91e63;background:#fff0fa">
+            <h5 class="font-fredoka mb-3" style="color:#e91e63">🎨 Palabras que los estudiantes deben dibujar</h5>
+            <p class="text-muted small fw-bold mb-3">Escribe las palabras una por una. Los estudiantes verán cada palabra y deberán dibujarla.</p>
+            <div class="d-flex gap-2 mb-3">
+              <input type="text" id="newWordInput" class="form-control" placeholder="Ej: Dog, Cat, Tree..." style="max-width:250px">
+              <button type="button" class="btn btn-nestgrow btn-primary-nestgrow" onclick="addWord()">+ Añadir</button>
+            </div>
+            <div id="wordsList" class="d-flex flex-wrap gap-2">
+              {% if painting_words %}
+                {% for pw in painting_words %}
+                <span class="word-tag" data-word="{{ pw.word }}">
+                  {{ pw.word }}<span class="remove-word" onclick="removeWord(this)">×</span>
+                </span>
+                {% endfor %}
+              {% endif %}
+            </div>
+            <div class="text-muted small mt-2" id="wordsCount">0 palabras añadidas</div>
+          </div>
+        </div>
+
+        <!-- Imágenes inline (modo creación, solo puzzle) -->
+        {% if not juego %}
+        <div class="col-12" id="imagenes-create-section" style="display:none">
+          <div class="nestgrow-card p-4" style="border:2px solid #00BCD4;background:#f0fffe">
+            <h5 class="font-fredoka mb-1" style="color:#00838F">🧩 Imágenes del rompecabezas</h5>
+            <p class="text-muted small fw-bold mb-3">
+              Añade las imágenes que se dividirán en piezas. El nombre que escribas aparecerá arriba para que el estudiante sepa qué debe armar.
+            </p>
+            <div id="img-rows-container" class="d-flex flex-column gap-2 mb-3"></div>
+            <button type="button"
+                    style="background:#e0f7fa;color:#00838F;font-weight:700;border:2px dashed #80DEEA;border-radius:10px"
+                    class="btn btn-sm w-100 py-2" onclick="addImgCreateRow()">
+              ➕ Añadir imagen
+            </button>
+            <div class="text-muted small mt-2">Puedes añadir más imágenes después desde la edición del juego.</div>
+          </div>
+        </div>
+        <input type="hidden" name="img_total_rows" id="img-total-rows" value="0">
+        {% endif %}
+
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.difficulty.label }}</label>
+          {{ form.difficulty }}
+          <div class="text-muted small mt-1">Los puntos y el tiempo límite se asignan automáticamente según la dificultad y el tipo de juego.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">{{ form.order.label }}</label>
+          {{ form.order }}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-bold">¿Cómo quieres guardar este juego?</label>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="d-block p-3 rounded-3 border-2 h-100"
+                     style="cursor:pointer;border-color:#6C63FF;background:#f0eeff"
+                     for="choice-activo">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <input type="radio" id="choice-activo" name="is_active_choice" value="1"
+                         onchange="syncIsActive(this)"
+                         {% if form.is_active.value %}checked{% endif %}>
+                  <span class="fw-bold" style="color:#6C63FF;font-size:1rem">✅ Activar para estudiantes</span>
+                </div>
+                <div class="text-muted small">El juego aparece en la lista pública y los estudiantes pueden jugarlo directamente.</div>
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="d-block p-3 rounded-3 border-2 h-100"
+                     style="cursor:pointer;border-color:#ccc;background:#f8f9fa"
+                     for="choice-taller">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <input type="radio" id="choice-taller" name="is_active_choice" value="0"
+                         onchange="syncIsActive(this)"
+                         {% if not form.is_active.value %}checked{% endif %}>
+                  <span class="fw-bold" style="color:#555;font-size:1rem">🔒 Solo para talleres</span>
+                </div>
+                <div class="text-muted small">El juego no aparece en la lista pública. Solo se puede asignar dentro de talleres.</div>
+              </label>
+            </div>
+          </div>
+          <div class="d-none">{{ form.is_active }}</div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-3 mt-4">
+        <button type="submit" class="btn btn-nestgrow btn-primary-nestgrow">🎮 {{ accion }}</button>
+        <a href="{% url 'talleres:lista_periodos' %}" class="btn btn-outline-secondary rounded-pill fw-bold">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Imágenes del rompecabezas (solo al editar puzzle) ── -->
+  {% if juego and juego_usa_imagenes %}
+  <div class="nestgrow-card p-4 mt-0">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <h5 class="font-fredoka mb-0" style="color:#00838F">🧩 Imágenes del rompecabezas</h5>
+      <span class="badge rounded-pill" style="background:#f0fffe;color:#00838F" id="img-count-badge">
+        {{ puzzle_imagenes|length }} imagen{{ puzzle_imagenes|length|pluralize:"es" }}
+      </span>
+    </div>
+    <p class="text-muted small fw-bold mb-4">
+      Cada imagen se dividirá en piezas jigsaw. El <strong>nombre</strong> aparece arriba del tablero
+      para que el estudiante sepa qué debe armar.
+    </p>
+
+    <!-- Lista de imágenes existentes -->
+    <div id="img-items-list" class="d-flex flex-column gap-2 mb-4">
+      {% for item in puzzle_imagenes %}
+      <div class="img-item-row" id="imgitem-{{ item.pk }}">
+        <img src="{{ item.image.url }}" alt="{{ item.title }}">
+        <div class="flex-grow-1">
+          <div class="fw-bold">{{ item.title }}</div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger rounded-pill"
+                onclick="eliminarImagen({{ item.pk }})">🗑</button>
+      </div>
+      {% empty %}
+      <div class="text-center py-3 text-muted fw-bold" id="img-empty-msg">
+        <div style="font-size:2rem">🧩</div>
+        <div>No hay imágenes aún. ¡Añade la primera!</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Formulario para añadir imagen -->
+    <div class="p-3 rounded-3" style="background:#f0fffe;border:2px solid #80DEEA">
+      <div class="fw-bold mb-3" style="color:#00838F">➕ Añadir imagen</div>
+      <div class="row g-2">
+        <div class="col-md-5">
+          <label class="form-label fw-bold small">Nombre del rompecabezas *</label>
+          <input type="text" id="inp-title" class="form-control" placeholder="Ej: El perro 🐕">
+        </div>
+        <div class="col-md-7 d-flex flex-column justify-content-end">
+          <label class="form-label fw-bold small">Imagen *</label>
+          <input type="file" id="inp-image" class="form-control" accept="image/*">
+        </div>
+      </div>
+      <!-- Vista previa -->
+      <div id="img-preview-wrap" class="mt-2" style="display:none">
+        <img id="img-preview" src="" alt="preview"
+             style="height:80px;border-radius:8px;border:2px solid #80DEEA;object-fit:cover">
+      </div>
+      <button class="btn btn-nestgrow btn-primary-nestgrow mt-3" onclick="agregarImagen()" id="btn-agregar-img"
+              {% if puzzle_imagenes|length >= 5 %}disabled{% endif %}>
+        ➕ Añadir imagen
+      </button>
+      {% if puzzle_imagenes|length >= 5 %}
+      <div class="text-muted small mt-2 fw-bold">⚠️ Límite de 5 imágenes alcanzado.</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const GAME_TYPE_SEL   = document.getElementById('id_game_type');
+const PAINTING_SEC    = document.getElementById('painting-words-section');
+const IMG_CREATE_SEC  = document.getElementById('imagenes-create-section');
+const IMG_TOTAL_ROWS  = document.getElementById('img-total-rows');
+const TIPOS_IMG       = ['puzzle'];
+
+function onGameTypeChange() {
+  const tipo = GAME_TYPE_SEL.value;
+  PAINTING_SEC.style.display = (tipo === 'painting') ? 'block' : 'none';
+  if (IMG_CREATE_SEC) IMG_CREATE_SEC.style.display = TIPOS_IMG.includes(tipo) ? 'block' : 'none';
+}
+GAME_TYPE_SEL.addEventListener('change', onGameTypeChange);
+onGameTypeChange();
+
+// ── Imágenes en modo creación ───────────────────────────────────────────────
+let imgRowCount = 0;
+
+function addImgCreateRow() {
+  const existing = document.getElementById('img-rows-container').children.length;
+  if (existing >= 5) { alert('⚠️ Máximo 5 imágenes por rompecabezas.'); return; }
+  const i = imgRowCount++;
+  if (IMG_TOTAL_ROWS) IMG_TOTAL_ROWS.value = imgRowCount;
+  const row = document.createElement('div');
+  row.id = `img-create-row-${i}`;
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;background:#fff;border:2px solid #b2dfdb;border-radius:10px;padding:10px 12px;flex-wrap:wrap';
+  row.innerHTML = `
+    <input type="text" name="puzzle_title_${i}" placeholder="Ej: El perro 🐕"
+           class="form-control form-control-sm" style="min-width:160px;flex:1">
+    <input type="file" name="puzzle_file_${i}" accept="image/*"
+           class="form-control form-control-sm" style="min-width:180px;flex:2">
+    <button type="button" onclick="removeImgCreateRow(${i})"
+            class="btn btn-sm btn-outline-danger rounded-circle"
+            style="width:32px;height:32px;padding:0;line-height:1;flex-shrink:0">✕</button>`;
+  document.getElementById('img-rows-container').appendChild(row);
+}
+
+function removeImgCreateRow(i) {
+  document.getElementById(`img-create-row-${i}`)?.remove();
+}
+
+// ── Painting words ─────────────────────────────────────────────────────────
+const wordsInput = document.getElementById('paintingWordsInput');
+const wordsList  = document.getElementById('wordsList');
+const wordsCount = document.getElementById('wordsCount');
+let words = [];
+document.querySelectorAll('.word-tag').forEach(tag => words.push(tag.dataset.word));
+updateInput();
+
+function addWord() {
+  const input = document.getElementById('newWordInput');
+  const word = input.value.trim();
+  if (!word || words.includes(word)) { input.value = ''; return; }
+  words.push(word);
+  renderWords(); updateInput();
+  input.value = ''; input.focus();
+}
+document.getElementById('newWordInput')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addWord(); }
+});
+function removeWord(el) {
+  words = words.filter(w => w !== el.parentElement.dataset.word);
+  renderWords(); updateInput();
+}
+function renderWords() {
+  wordsList.innerHTML = '';
+  words.forEach(word => {
+    const span = document.createElement('span');
+    span.className = 'word-tag'; span.dataset.word = word;
+    span.innerHTML = `${word} <span class="remove-word" onclick="removeWord(this)">×</span>`;
+    wordsList.appendChild(span);
+  });
+  wordsCount.textContent = `${words.length} palabra${words.length !== 1 ? 's' : ''} añadida${words.length !== 1 ? 's' : ''}`;
+}
+function updateInput() {
+  if (wordsInput) wordsInput.value = JSON.stringify(words);
+  if (wordsCount) wordsCount.textContent = `${words.length} palabra${words.length !== 1 ? 's' : ''} añadida${words.length !== 1 ? 's' : ''}`;
+}
+
+// ── Sincronizar tarjetas is_active con el checkbox real ────────────────────
+function syncIsActive(radio) {
+  const checkbox = document.getElementById('{{ form.is_active.id_for_label }}');
+  if (checkbox) checkbox.checked = (radio.value === '1');
+}
+
+// ── Gestión de imágenes del rompecabezas (modo edición) ───────────────────
+{% if juego and juego_usa_imagenes %}
+const CSRF        = "{{ csrf_token }}";
+const ADD_IMG_URL = "{% url 'games:api_imagen_agregar' game_pk=juego.pk %}";
+let imgCount = {{ puzzle_imagenes|length }};
+
+// Vista previa
+document.getElementById('inp-image')?.addEventListener('change', function() {
+  const file = this.files[0];
+  const wrap = document.getElementById('img-preview-wrap');
+  const prev = document.getElementById('img-preview');
+  if (file) { prev.src = URL.createObjectURL(file); wrap.style.display = 'block'; }
+  else { wrap.style.display = 'none'; }
+});
+
+async function agregarImagen() {
+  const title  = document.getElementById('inp-title').value.trim();
+  const imgFile = document.getElementById('inp-image').files[0];
+  if (!title)   { alert('⚠️ El nombre del rompecabezas es requerido.'); return; }
+  if (!imgFile) { alert('⚠️ Debes seleccionar una imagen.'); return; }
+
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('title', title);
+  fd.append('image', imgFile);
+
+  const btn = document.getElementById('btn-agregar-img');
+  btn.disabled = true; btn.textContent = 'Añadiendo…';
+
+  const res  = await fetch(ADD_IMG_URL, { method: 'POST', body: fd });
+  const data = await res.json();
+
+  if (data.ok) {
+    appendImgRow(data.item);
+    document.getElementById('inp-title').value = '';
+    document.getElementById('inp-image').value = '';
+    document.getElementById('img-preview-wrap').style.display = 'none';
+    imgCount++;
+    updateImgBadge();
+    document.getElementById('img-empty-msg')?.remove();
+    if (imgCount >= 5) {
+      document.getElementById('btn-agregar-img').disabled = true;
+      document.getElementById('btn-agregar-img').insertAdjacentHTML(
+        'afterend', '<div class="text-muted small mt-2 fw-bold" id="limit-msg">⚠️ Límite de 5 imágenes alcanzado.</div>'
+      );
+    }
+  } else {
+    alert('❌ ' + (data.error || 'Error al añadir la imagen.'));
+  }
+  btn.disabled = false; btn.textContent = '➕ Añadir imagen';
+}
+
+function appendImgRow(item) {
+  const div = document.createElement('div');
+  div.className = 'img-item-row';
+  div.id = 'imgitem-' + item.pk;
+  div.innerHTML = `
+    <img src="${item.image_url}" alt="${item.title}">
+    <div class="flex-grow-1"><div class="fw-bold">${item.title}</div></div>
+    <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="eliminarImagen(${item.pk})">🗑</button>`;
+  document.getElementById('img-items-list').appendChild(div);
+}
+
+async function eliminarImagen(pk) {
+  if (!confirm('¿Eliminar esta imagen del rompecabezas?')) return;
+  const res  = await fetch(`/juegos/gestionar/imagen/${pk}/eliminar/`, {
+    method: 'POST', headers: { 'X-CSRFToken': CSRF }
+  });
+  const data = await res.json();
+  if (data.ok) {
+    document.getElementById('imgitem-' + pk)?.remove();
+    imgCount--;
+    updateImgBadge();
+    if (imgCount < 5) {
+      document.getElementById('btn-agregar-img').disabled = false;
+      document.getElementById('limit-msg')?.remove();
+    }
+    if (imgCount === 0) {
+      const empty = document.createElement('div');
+      empty.id = 'img-empty-msg';
+      empty.className = 'text-center py-3 text-muted fw-bold';
+      empty.innerHTML = '<div style="font-size:2rem">🧩</div><div>No hay imágenes aún. ¡Añade la primera!</div>';
+      document.getElementById('img-items-list').appendChild(empty);
+    }
+  }
+}
+
+function updateImgBadge() {
+  const b = document.getElementById('img-count-badge');
+  if (b) b.textContent = `${imgCount} imagen${imgCount !== 1 ? 'es' : ''}`;
+}
+{% endif %}
+</script>
+{% endblock %}

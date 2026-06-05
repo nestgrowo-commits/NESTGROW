@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ game.title }} - NestGrow{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'games/css/games.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 memoria-page">
+  <div class="d-flex align-items-center gap-3 mb-4">
+    {% if user.role == 'profesor' %}<a href="{% url 'talleres:lista_periodos' %}" class="btn btn-outline-secondary rounded-pill">← Back</a>{% else %}<a href="{% url 'talleres:mis_talleres' %}" class="btn btn-outline-secondary rounded-pill">← Back</a>{% endif %}
+    <h3 class="font-fredoka mb-0" style="color:var(--primary)">🃏 {{ game.title }}</h3>
+  </div>
+
+  {% if not embedded and user.role == 'estudiante' %}
+  <div class="alert fw-bold mb-3" style="background:#fff9ee;border:2px solid #FFB347;border-radius:14px;color:#8B4513">
+    <i class="bi bi-info-circle-fill me-2" style="color:#FFB347"></i>
+    To earn <strong>Milo's Bones</strong> and level up, play these minigames inside the <a href="{% url 'talleres:mis_talleres' %}" class="fw-bold text-decoration-none" style="color:#FFB347">Workshops</a>.
+  </div>
+  {% endif %}
+
+  {% include 'games/includes/vocabulary_tab.html' %}
+
+  <div id="gameSection" style="display:none">
+    <div class="game-score-bar flex-wrap gap-2">
+      <span>🃏 Memory</span>
+      <span class="badge rounded-pill mem-diff-chip" title="Define el profesor al crear el minijuego">
+        {% if game.difficulty == 1 %}⭐ Easy — 4 pairs{% elif game.difficulty == 2 %}⭐⭐ Medium — 6 pairs{% else %}⭐⭐⭐ Hard — 8 pairs{% endif %}
+      </span>
+      <span>Pairs: <strong id="matchCount">0</strong> / <strong id="totalPairs">0</strong></span>
+      <span>⏱ <span id="timerDisplay">00:00</span></span>
+    </div>
+
+    <div class="milo-banner mb-3 mem-milo-tip">
+      <div class="milo-banner-owl mem-milo-owl-wrap">
+        <img src="{% static 'img/milo_hablando.png' %}" alt="" class="mem-milo-face" width="56" height="56" draggable="false">
+      </div>
+      <div class="milo-banner-text" id="memBannerText">Find all the pairs! Flip the cards and memorize.</div>
+    </div>
+
+    {% if game.difficulty == 3 %}
+    <p class="text-center small text-muted mb-2">💡 After 20 s, some cards may swap places. In hard mode the lights can also go out!</p>
+    {% elif game.difficulty == 2 %}
+    <p class="text-center small text-muted mb-2">💡 After 20 s, some cards might swap places. Memorize their positions well!</p>
+    {% elif game.difficulty == 1 %}
+    <p class="text-center small text-muted mb-2">💡 Every ~15 s the cards reshuffle on their own inside Milo's box!</p>
+    {% endif %}
+
+    <div class="text-center mb-3">
+      <div class="stat-card d-inline-block px-5 shadow-sm">
+        <div class="stat-number mem-score-pop" id="scoreDisplay">0</div>
+        <div class="stat-label">Points</div>
+      </div>
+    </div>
+
+    <div class="mem-board-shell nestgrow-card mb-5" aria-label="Zona del tablero Memorama">
+      <div class="mem-board-corner mem-board-corner-tl"></div>
+      <div class="mem-board-corner mem-board-corner-br"></div>
+      <p class="mem-board-tagline mb-0">
+        🎯 <strong>Milo's Arena</strong> — everything happens inside this magic box!
+      </p>
+      <div class="mem-board-stage">
+        <div id="memoryGrid" class="memory-grid" aria-label="Cartas Memorama dentro del tablero"></div>
+        <div id="memBlackout" class="mem-blackout mem-blackout--board" aria-hidden="true">
+          <div class="mem-blackout-inner animate__animated animate__pulse">
+            <span class="mem-blackout-icon" aria-hidden="true">⚡</span>
+            <p class="mem-blackout-text">Lights out!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="memToast" class="mem-toast nestgrow-card" role="status" aria-live="polite"></div>
+
+<div class="win-overlay" id="winOverlay" style="display:none">
+  <div class="win-card">
+    <div class="win-milo-wrap">
+      <img id="winMilo" class="win-milo-img" src="{% static 'img/milo_fest.png' %}" alt="Milo">
+    </div>
+    <div class="win-message" id="winMessage">Excellent work!</div>
+    <div class="win-title">Incredible Memory!</div>
+    <div class="win-stars" id="winStars">⭐⭐⭐</div>
+    <div class="win-clasif font-fredoka" id="winClasif"></div>
+    <div class="win-score"><span id="winScore">0</span> pts · <span id="winTime">0</span>s</div>
+    <div class="win-huesos" id="winHuesos"></div>
+    <a id="btnVolverPanel" href="{% url 'talleres:mis_talleres' %}" class="btn btn-nestgrow btn-primary-nestgrow mt-3 d-block">✔️ Back to dashboard</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'games/js/score_utils.js' %}"></script>
+<script src="{% static 'games/js/memoria.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  initMemoria({
+    VOCABULARY: {{ vocabulary_json|safe }},
+    DIFFICULTY: {{ game.difficulty }},
+    GAME_ID: {{ game.id }},
+    POINTS_REWARD: {{ game.points_reward }},
+    PENALTY_AMOUNT: {{ game.penalty_amount }},
+    SAVE_URL: "{% url 'games:save_score' %}",
+    CSRF: "{{ csrf_token }}",
+    MILO_CARD_BACK_URL: "{% static 'img/milo_rostro.png' %}",
+    CATEGORY_ICON: "{{ game.category.icon|escapejs }}",
+    CATEGORY_NAME_ES: "{{ game.category.name|escapejs }}",
+    categoryColor: "{{ game.category.color|default:'#6C63FF'|escapejs }}",
+    autoStartPlay: {% if embedded %}true{% else %}false{% endif %},
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,99 @@
+---
+description: Academic grading and student management systems
+alwaysApply: true
+---
+
+# ACADEMIC SYSTEM PRIORITY
+
+This application manages:
+- student progress
+- grades
+- scores
+- educational analytics
+- evaluations
+
+These systems are HIGH PRIORITY and HIGH SENSITIVITY.
+
+# IMPORTANT
+
+Never modify grading logic irresponsibly.
+
+Never break:
+- score calculations
+- averages
+- student history
+- progression tracking
+- achievement systems
+- report generation
+
+# STUDENT DATA
+
+Student-related data must be:
+- accurate
+- protected
+- consistent
+- traceable
+
+# GRADE SYSTEMS
+
+All grading systems should:
+- be deterministic
+- avoid random inconsistencies
+- preserve history
+- support auditability
+
+# EDUCATIONAL ANALYTICS
+
+Prefer systems that:
+- track improvement
+- monitor progression
+- identify learning patterns
+- encourage motivation
+
+# UX FOR STUDENTS
+
+Academic systems should feel:
+- motivating
+- rewarding
+- understandable
+- encouraging
+
+Avoid:
+- harsh punishment systems
+- negative emotional feedback
+- demotivating language
+
+# TEACHER/ADMIN PANELS
+
+Admin interfaces should prioritize:
+- clarity
+- efficiency
+- organization
+- fast access to information
+- visual summaries
+
+# DATA VISUALIZATION
+
+Prefer:
+- charts
+- progress bars
+- visual analytics
+- performance summaries
+- achievement indicators
+
+# SAFETY
+
+Never:
+- delete student progress
+- overwrite grades
+- reset progress systems
+
+without explicit approval.
+
+# ARCHITECTURE
+
+Academic logic should remain:
+- modular
+- testable
+- isolated
+- scalable

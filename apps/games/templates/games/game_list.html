@@ -1,0 +1,473 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Minigames - NestGrow{% endblock %}
+
+{% block extra_css %}
+<style>
+  @keyframes floatBounce {
+    0%,100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-15px) scale(1.05); }
+  }
+
+  /* HERO más festivo */
+  .games-hero {
+    background: linear-gradient(135deg, #6C63FF 0%, #9c94ff 50%, #4ECDC4 100%);
+    border-radius: 32px;
+    padding: 2.5rem 3rem;
+    color: white;
+    position: relative;
+    overflow: visible;
+    margin-bottom: 2rem;
+    min-height: 240px;
+  }
+  .games-hero::before {
+    content:'';
+    position:absolute;
+    width:350px;height:350px;
+    background:rgba(255,255,255,0.08);
+    border-radius:50%;
+    top:-120px;right:-100px;
+  }
+  .games-hero::after {
+    content:'';
+    position:absolute;
+    width:200px;height:200px;
+    background:rgba(255,255,255,0.06);
+    border-radius:50%;
+    bottom:-80px;left:30px;
+  }
+  .hero-deco {
+    position: absolute;
+    pointer-events: none;
+    animation: floatBounce 3s ease-in-out infinite;
+  }
+  .hero-deco:nth-child(1) { top:3%;right:8%;font-size:1.2rem;animation-delay:0s;opacity:0.25 }
+  .hero-deco:nth-child(2) { top:25%;right:3%;font-size:0.9rem;animation-delay:0.5s;opacity:0.2 }
+  .hero-deco:nth-child(3) { bottom:8%;right:15%;font-size:1rem;animation-delay:1s;opacity:0.3 }
+  .hero-deco:nth-child(4) { bottom:20%;right:5%;font-size:0.8rem;animation-delay:1.5s;opacity:0.2 }
+  .hero-deco:nth-child(5) { top:12%;right:20%;font-size:0.7rem;animation-delay:0.8s;opacity:0.15 }
+
+  /* FILTROS más coloridos - estilo chip */
+  .filter-chip {
+    border-radius: 50px;
+    padding: 10px 24px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    border: 3px solid transparent;
+    transition: all 0.3s;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-chip:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(108,99,255,0.25);
+  }
+  .filter-chip.active {
+    background: linear-gradient(135deg, #6C63FF, #9c94ff);
+    color: white !important;
+    box-shadow: 0 8px 25px rgba(108,99,255,0.4);
+    border-color: white;
+  }
+  .filter-chip.inactive {
+    background: white;
+    border-color: #e8e4ff;
+    color: #666 !important;
+  }
+  .filter-chip.all { border-color: #6C63FF; color: #6C63FF; }
+  .filter-chip.drag { border-color: #6C63FF; color: #6C63FF; }
+  .filter-chip.search { border-color: #FF6B6B; color: #FF6B6B; }
+  .filter-chip.puzzle { border-color: #4ECDC4; color: #4ECDC4; }
+  .filter-chip.paint { border-color: #FFB347; color: #FFB347; }
+  .filter-chip.audio { border-color: #9c94ff; color: #9c94ff; }
+
+  /* ══ TARJETAS ══ */
+  .game-card {
+    background: white;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.05);
+    transition: transform 0.3s cubic-bezier(.22,1,.36,1), box-shadow 0.3s;
+    border: 2.5px solid transparent;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+  }
+  .game-card:hover {
+    transform: translateY(-10px) scale(1.015);
+    box-shadow: 0 24px 52px rgba(0,0,0,0.14), 0 8px 20px rgba(0,0,0,0.08);
+  }
+  .game-card.drag   { border-color: #ded8ff; }
+  .game-card.search { border-color: #ffd4d4; }
+  .game-card.puzzle { border-color: #c4f0ed; }
+  .game-card.paint  { border-color: #ffe9c4; }
+  .game-card.audio  { border-color: #ddd8ff; }
+  .game-card.mem    { border-color: #e4d8ff; }
+  .game-card.hang   { border-color: #ffd4d4; }
+  .game-card.glob   { border-color: #c4f0ed; }
+
+  .game-card:hover.drag   { border-color: #6C63FF; }
+  .game-card:hover.search { border-color: #FF6B6B; }
+  .game-card:hover.puzzle { border-color: #4ECDC4; }
+  .game-card:hover.paint  { border-color: #FFB347; }
+  .game-card:hover.audio  { border-color: #9c94ff; }
+  .game-card:hover.mem    { border-color: #a78bfa; }
+  .game-card:hover.hang   { border-color: #FF6B6B; }
+  .game-card:hover.glob   { border-color: #4ECDC4; }
+
+  /* ── Banner ── */
+  .game-banner {
+    height: 160px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+  /* Colores por tipo */
+  .gb-drag   { background: linear-gradient(145deg, #5a52d5, #6C63FF, #9c94ff); }
+  .gb-search { background: linear-gradient(145deg, #e85555, #FF6B6B, #ff9f9f); }
+  .gb-puzzle { background: linear-gradient(145deg, #3ab8b0, #4ECDC4, #7ee8e2); }
+  .gb-paint  { background: linear-gradient(145deg, #e6982a, #FFB347, #FFE66D); }
+  .gb-audio  { background: linear-gradient(145deg, #5a52d5, #7c6fff, #4ECDC4); }
+  .gb-mem    { background: linear-gradient(145deg, #8c7be8, #a78bfa, #c0a8ff); }
+  .gb-hang   { background: linear-gradient(145deg, #e85555, #FF6B6B, #FFB347); }
+  .gb-glob   { background: linear-gradient(145deg, #3ab8b0, #4ECDC4, #7ee8e2); }
+
+  /* Brillo que cruza el banner */
+  .game-banner::before {
+    content: '';
+    position: absolute;
+    top: -60%; left: -80%;
+    width: 55%; height: 220%;
+    background: linear-gradient(105deg, transparent, rgba(255,255,255,0.22), transparent);
+    transform: skewX(-15deg);
+    animation: bannerShine 4.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes bannerShine {
+    0%, 100% { left: -80%; }
+    50%       { left: 140%; }
+  }
+
+  /* Puntos decorativos */
+  .game-banner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle 2.5px at 12% 18%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(circle 1.5px at 88% 14%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(circle 2px   at 80% 82%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(circle 1.5px at 18% 80%, rgba(255,255,255,0.25) 0%, transparent 100%),
+      radial-gradient(circle 1px   at 50% 10%, rgba(255,255,255,0.2)  0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  /* Ícono principal */
+  .gb-main-icon {
+    font-size: 3.6rem;
+    color: white;
+    filter: drop-shadow(0 6px 18px rgba(0,0,0,0.3));
+    position: relative;
+    z-index: 2;
+    animation: gbIconFloat 3.2s ease-in-out infinite;
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), filter 0.3s;
+    line-height: 1;
+  }
+  @keyframes gbIconFloat {
+    0%,100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-8px) scale(1.1); }
+  }
+  .col-sm-6:nth-child(2) .gb-main-icon { animation-delay: 0.5s; }
+  .col-sm-6:nth-child(3) .gb-main-icon { animation-delay: 1s; }
+  .col-sm-6:nth-child(4) .gb-main-icon { animation-delay: 1.5s; }
+  .col-sm-6:nth-child(5) .gb-main-icon { animation-delay: 2s; }
+  .col-sm-6:nth-child(6) .gb-main-icon { animation-delay: 0.8s; }
+
+  .game-card:hover .gb-main-icon {
+    transform: translateY(-12px) scale(1.25) !important;
+    filter: drop-shadow(0 12px 26px rgba(0,0,0,0.38));
+    animation: none;
+  }
+
+  /* Nombre del tipo */
+  .gb-type-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.92rem;
+    color: rgba(255,255,255,0.96);
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 2;
+    background: rgba(0,0,0,0.2);
+    padding: 3px 14px;
+    border-radius: 50px;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.3);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+
+  /* ── Cuerpo de la card ── */
+  .game-card-body {
+    padding: 16px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+
+  /* Badges superiores */
+  .gc-top-badges {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .gc-cat-badge {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.78rem;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-weight: 700;
+  }
+
+  /* Badge dificultad */
+  .diff-badge {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border-radius: 50px;
+    white-space: nowrap;
+  }
+  .diff-easy   { background: #e6faf8; color: #2ab5ac; }
+  .diff-medium { background: #fff8eb; color: #e09a2a; }
+  .diff-hard   { background: #ffeaea; color: #e05555; }
+
+  /* Título y descripción */
+  .gc-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    color: var(--primary);
+    line-height: 1.25;
+    margin: 0;
+  }
+  .gc-desc {
+    font-size: 0.8rem;
+    color: #888;
+    font-weight: 600;
+    line-height: 1.45;
+    margin: 0;
+    flex: 1;
+  }
+
+  /* Pie de la card */
+  .gc-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1.5px solid #f0eeff;
+  }
+  .gc-points {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: #e09a2a;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .gc-play-btn {
+    background: linear-gradient(135deg, #6C63FF, #9c94ff);
+    color: white;
+    border-radius: 50px;
+    padding: 8px 20px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: transform 0.18s, box-shadow 0.18s;
+    box-shadow: 0 3px 12px rgba(108,99,255,0.3);
+  }
+  .game-card:hover .gc-play-btn {
+    transform: scale(1.06);
+    box-shadow: 0 6px 20px rgba(108,99,255,0.5);
+  }
+
+  /* Empty state */
+  .empty-state {
+    background: white;
+    border-radius: 32px;
+    padding: 4rem 2rem;
+    text-align: center;
+    box-shadow: 0 10px 35px rgba(108,99,255,0.1);
+    border: 3px dashed #e8e4ff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- HERO -->
+  <div class="games-hero">
+    <span class="hero-deco"><i class="bi bi-star-fill" style="color:white"></i></span>
+    <span class="hero-deco"><i class="bi bi-star-fill" style="color:white"></i></span>
+    <span class="hero-deco"><i class="bi bi-star-fill" style="color:white"></i></span>
+    <span class="hero-deco"><i class="bi bi-star-fill" style="color:white"></i></span>
+    <span class="hero-deco"><i class="bi bi-star-fill" style="color:white"></i></span>
+    <div class="row align-items-center position-relative" style="z-index:1">
+      <div class="col-md-8">
+        <div class="d-inline-flex align-items-center gap-2 mb-3 px-4 py-2 rounded-pill fw-bold"
+             style="background:rgba(255,255,255,0.25);color:white;font-size:0.9rem">
+          <i class="bi bi-controller"></i> Game zone
+        </div>
+        <h2 class="font-fredoka mb-2" style="font-size:2.5rem;line-height:1.1">
+          Choose your minigame and<br>learn English!
+        </h2>
+        <p style="opacity:0.9;font-weight:700;font-size:1.1;margin-bottom:1.2rem">
+          Each minigame gives you points and brings you closer to the next level.
+        </p>
+        <div class="d-flex gap-3 flex-wrap">
+          <div class="d-flex align-items-center gap-2 fw-bold" style="color:rgba(255,255,255,0.95)">
+            <i class="bi bi-star-fill" style="color:#FFE66D;font-size:1.2rem"></i> Earn points
+          </div>
+          <div class="d-flex align-items-center gap-2 fw-bold" style="color:rgba(255,255,255,0.95)">
+            <i class="bi bi-award-fill" style="color:#FFE66D;font-size:1.2rem"></i> Unlock achievements
+          </div>
+          <div class="d-flex align-items-center gap-2 fw-bold" style="color:rgba(255,255,255,0.95)">
+            <i class="bi bi-trophy-fill" style="color:#FFE66D;font-size:1.2rem"></i> Climb the ranking
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 text-center d-none d-md-block">
+        <img src="{% static 'img/milo_fest.png' %}" alt="Milo"
+             style="width:170px;filter:drop-shadow(0 10px 25px rgba(0,0,0,0.2));
+                    animation:floatBounce 3s ease-in-out infinite">
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="d-flex gap-2 flex-wrap mb-4 align-items-center">
+    <span class="fw-bold me-2" style="color:var(--primary);font-family:'Fredoka One',cursive;font-size:1.1rem">
+      <i class="bi bi-funnel-fill me-1"></i>Filter:
+    </span>
+    <a href="{% url 'games:game_list' %}"
+       class="filter-chip {% if not selected_category %}active{% else %}inactive all{% endif %}"
+       style="text-decoration:none">
+      <i class="bi bi-grid-fill"></i>All
+    </a>
+    {% for cat in categories %}
+    <a href="?categoria={{ cat.id }}"
+       class="filter-chip {% if selected_category == cat.id|stringformat:'s' %}active{% else %}inactive{% endif %}"
+       style="text-decoration:none">
+      {{ cat.icon|safe }} {{ cat.name }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- GRID DE JUEGOS -->
+  {% if games %}
+  <div class="row g-4">
+    {% for game in games %}
+    <div class="col-sm-6 col-lg-4">
+      <a href="{{ game.get_absolute_url }}" class="game-card
+        {% if game.game_type == 'drag_and_drop' %}drag
+        {% elif game.game_type == 'word_search' %}search
+        {% elif game.game_type == 'puzzle' %}puzzle
+        {% elif game.game_type == 'painting' %}paint
+        {% elif game.game_type == 'audio_matching' %}audio
+        {% elif game.game_type == 'memoria' %}mem
+        {% elif game.game_type == 'ahorcado' %}hang
+        {% elif game.game_type == 'globos' %}glob
+        {% else %}drag{% endif %}">
+
+        <!-- Banner visual por tipo de juego — ícono flotante + nombre -->
+        <div class="game-banner
+          {% if game.game_type == 'drag_and_drop' %}gb-drag
+          {% elif game.game_type == 'word_search' %}gb-search
+          {% elif game.game_type == 'puzzle' %}gb-puzzle
+          {% elif game.game_type == 'painting' %}gb-paint
+          {% elif game.game_type == 'audio_matching' %}gb-audio
+          {% elif game.game_type == 'memoria' %}gb-mem
+          {% elif game.game_type == 'ahorcado' %}gb-hang
+          {% elif game.game_type == 'globos' %}gb-glob
+          {% else %}gb-drag{% endif %}">
+
+          {# Ícono grande flotante — el protagonista visual #}
+          <i class="bi gb-main-icon
+            {% if game.game_type == 'drag_and_drop' %}bi-hand-index-thumb-fill
+            {% elif game.game_type == 'word_search' %}bi-search
+            {% elif game.game_type == 'puzzle' %}bi-puzzle-fill
+            {% elif game.game_type == 'painting' %}bi-brush-fill
+            {% elif game.game_type == 'audio_matching' %}bi-headphones
+            {% elif game.game_type == 'memoria' %}bi-grid-3x3-gap-fill
+            {% elif game.game_type == 'ahorcado' %}bi-alphabet
+            {% elif game.game_type == 'globos' %}bi-balloon-fill
+            {% else %}bi-controller{% endif %}"></i>
+
+          {# Nombre del tipo bien visible #}
+          <span class="gb-type-name">
+            {% if game.game_type == 'drag_and_drop' %}Connect
+            {% elif game.game_type == 'word_search' %}Word Search
+            {% elif game.game_type == 'puzzle' %}Puzzle
+            {% elif game.game_type == 'painting' %}Painting
+            {% elif game.game_type == 'audio_matching' %}Audio
+            {% elif game.game_type == 'memoria' %}Memory
+            {% elif game.game_type == 'ahorcado' %}Hangman
+            {% elif game.game_type == 'globos' %}Balloons
+            {% else %}Minigame{% endif %}
+          </span>
+        </div>
+
+        <!-- Info del juego -->
+        <div class="game-card-body">
+          <div class="gc-top-badges">
+            <span class="gc-cat-badge"
+                  style="background:{{ game.category.color }}18;color:{{ game.category.color }}">
+              {{ game.category.icon|safe }} {{ game.category.name }}
+            </span>
+            <span class="diff-badge {% if game.difficulty == 1 %}diff-easy{% elif game.difficulty == 2 %}diff-medium{% else %}diff-hard{% endif %}">
+              {% if game.difficulty == 1 %}⭐ Easy
+              {% elif game.difficulty == 2 %}⭐⭐ Medium
+              {% else %}⭐⭐⭐ Hard{% endif %}
+            </span>
+          </div>
+          <p class="gc-title">{{ game.title }}</p>
+          <p class="gc-desc">{{ game.description|truncatewords:10 }}</p>
+          <div class="gc-footer">
+            <span class="gc-points">
+              <i class="bi bi-star-fill" style="color:#FFB347"></i>+{{ game.points_reward }} pts
+            </span>
+            <span class="gc-play-btn">
+              <i class="bi bi-play-fill"></i>Play!
+            </span>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-controller" style="font-size:4rem;color:#ccc;margin-bottom:1rem;display:block"></i>
+    <h3 class="font-fredoka mt-2 mb-2" style="color:var(--primary);font-size:1.6rem">No games yet!</h3>
+    <p class="text-muted fw-bold mb-3">Teacher Milo is preparing new games for this category.</p>
+    <a href="{% url 'games:game_list' %}"
+       class="btn fw-bold mt-2"
+       style="background:linear-gradient(135deg,#6C63FF,#9c94ff);color:white;
+              padding:12px 32px;font-family:'Fredoka One',cursive;border-radius:50px">
+      <i class="bi bi-caret-left-fill me-2"></i>View all games
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

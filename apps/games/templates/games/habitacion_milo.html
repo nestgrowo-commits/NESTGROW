@@ -1,0 +1,1227 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Milo's Room - NestGrow{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Reset del main ── */
+  .nestgrow-main { padding-bottom: 0 !important; overflow: hidden; }
+
+  /* ══════════════════════════════════════
+     ROOM PAGE
+  ══════════════════════════════════════ */
+  .room-page {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: url("{% static 'img/h_dia.png' %}") center center / cover no-repeat;
+    min-height: 500px;
+  }
+
+  /* Capa de ambiente sobre el fondo */
+  .room-page::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(80, 60, 180, 0.08) 0%,
+      rgba(0, 0, 0, 0.05) 60%,
+      rgba(0, 0, 0, 0.22) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ══════════════════════════════════════
+     HUD FLOTANTE
+  ══════════════════════════════════════ */
+  .room-hud {
+    position: absolute;
+    z-index: 50;
+    font-family: 'Fredoka One', cursive;
+    border-radius: 50px;
+    padding: 10px 20px;
+    border: 2px solid rgba(255,255,255,0.4);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    text-decoration: none;
+    transition: all 0.22s cubic-bezier(.22,1,.36,1);
+    white-space: nowrap;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.22);
+  }
+  .hud-bones {
+    top: 16px; left: 16px;
+    background: rgba(80, 40, 5, 0.85);
+    color: #FFE66D;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+  }
+  .hud-bones .hud-count {
+    background: rgba(255,230,109,0.18);
+    border-radius: 20px;
+    padding: 1px 10px;
+    margin-left: 4px;
+  }
+  .hud-panel {
+    top: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(20,15,60,0.75);
+    color: rgba(255,255,255,0.9);
+    font-size: 0.88rem;
+    padding: 8px 18px;
+  }
+  .hud-panel:hover {
+    color: white;
+    background: rgba(20,15,60,0.92);
+    transform: translateX(-50%) translateY(-2px);
+  }
+  .hud-shop {
+    top: 16px; right: 16px;
+    background: linear-gradient(135deg, rgba(108,99,255,0.92), rgba(155,148,255,0.92));
+    color: white;
+    font-size: 1.05rem;
+    animation: shopPulse 3s ease-in-out infinite;
+  }
+  .hud-shop:hover {
+    color: white;
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 28px rgba(108,99,255,0.55);
+  }
+  @keyframes shopPulse {
+    0%,100% { box-shadow: 0 4px 18px rgba(108,99,255,0.35); }
+    50%      { box-shadow: 0 4px 28px rgba(108,99,255,0.65); }
+  }
+
+  /* ══════════════════════════════════════
+     MILO EN LA HABITACIÓN
+  ══════════════════════════════════════ */
+  .milo-lector {
+    position: absolute;
+    left: 9%;
+    bottom: 26%;
+    width: 22%;
+    max-width: 260px;
+    cursor: pointer;
+    z-index: 20;
+    filter: drop-shadow(0 12px 30px rgba(0,0,0,0.4));
+    transition: transform 0.3s cubic-bezier(.22,1,.36,1);
+  }
+  .milo-lector:hover {
+    transform: scale(1.06) translateY(-6px);
+  }
+  .milo-lector-wrap { position: relative; width: 100%; }
+  .milo-lector-img  { width: 100%; display: block; }
+
+  /* Bocadillo de Milo */
+  .milo-bubble {
+    position: absolute;
+    bottom: calc(100% + 16px);
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    background: white;
+    border-radius: 22px;
+    padding: 16px 28px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: #6C63FF;
+    white-space: nowrap;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 30;
+    border: 2.5px solid #e0d8ff;
+    min-width: 220px;
+    text-align: center;
+  }
+  .milo-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -12px; left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-top-color: white;
+  }
+  /* hover no muestra el bubble — lo controla JS */
+
+  /* ══════════════════════════════════════
+     INDICADOR DE ESTADO — humor de Milo
+  ══════════════════════════════════════ */
+  .milo-mood-badge {
+    position: absolute;
+    top: -10px; right: -10px;
+    width: 38px; height: 38px;
+    background: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+    border: 2.5px solid #e0d8ff;
+    animation: moodBounce 2s ease-in-out infinite;
+    z-index: 25;
+  }
+  @keyframes moodBounce {
+    0%,100% { transform: scale(1); }
+    50%      { transform: scale(1.18) rotate(8deg); }
+  }
+
+  /* ══════════════════════════════════════
+     ITEMS DECORATIVOS
+  ══════════════════════════════════════ */
+  .room-item {
+    position: absolute;
+    z-index: 15;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(.22,1,.36,1), filter 0.25s;
+  }
+  .room-item:hover {
+    transform: scale(1.18) translateY(-8px);
+    filter: drop-shadow(0 12px 22px rgba(108,99,255,0.45));
+  }
+  .room-item:hover .item-label { opacity: 1; transform: translateY(0); }
+  .item-emoji-big {
+    font-size: 3.2rem;
+    display: block;
+    filter: drop-shadow(0 5px 12px rgba(0,0,0,0.35));
+  }
+  .item-img-room {
+    height: 78px;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 12px rgba(0,0,0,0.35));
+    display: block;
+    margin: 0 auto;
+  }
+  .item-label {
+    display: block;
+    margin-top: 5px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.75rem;
+    color: white;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.95);
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s, transform 0.2s;
+    background: rgba(0,0,0,0.45);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  /* ── Drag handle y controles ── */
+  .room-item-drag {
+    position: absolute;
+    cursor: grab;
+    transform-origin: center center;
+    transition: box-shadow 0.15s;
+    user-select: none;
+  }
+  .room-item-drag.dragging {
+    cursor: grabbing;
+    z-index: 500;
+    filter: drop-shadow(0 16px 32px rgba(108,99,255,0.5));
+  }
+  .drag-handle {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(108,99,255,0.85);
+    color: white;
+    font-size: 0.75rem;
+    padding: 1px 7px;
+    border-radius: 99px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    cursor: grab;
+    white-space: nowrap;
+    letter-spacing: 1px;
+  }
+  .room-item-drag:hover .drag-handle { opacity: 1; }
+  .item-controls {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .room-item-drag:hover .item-controls { opacity: 1; pointer-events: auto; }
+  .item-ctrl-btn {
+    background: rgba(108,99,255,0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .item-ctrl-btn:hover { background: #5a52d5; transform: scale(1.15); }
+  .item-ctrl-info { background: rgba(78,205,196,0.9); }
+  .item-ctrl-info:hover { background: #38b2ac; }
+
+  /* ══════════════════════════════════════
+     GAME CARDS (items con minijuego)
+  ══════════════════════════════════════ */
+  .room-game-card {
+    position: absolute;
+    z-index: 15;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 22px;
+    padding: 16px 20px;
+    min-width: 130px;
+    background: linear-gradient(145deg, rgba(12,10,50,0.92), rgba(25,20,80,0.88));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 2px solid rgba(108, 99, 255, 0.65);
+    box-shadow: 0 0 28px rgba(108, 99, 255, 0.4), inset 0 0 20px rgba(108,99,255,0.06);
+    transition: all 0.28s cubic-bezier(.22,1,.36,1);
+    animation: rgbPulse 5s ease-in-out infinite;
+  }
+  .room-game-card:hover {
+    transform: translateY(-8px) scale(1.07);
+    box-shadow: 0 0 50px rgba(108,99,255,0.75), inset 0 0 24px rgba(108,99,255,0.15);
+    border-color: rgba(180, 174, 255, 0.95);
+  }
+  @keyframes rgbPulse {
+    0%,100% { box-shadow: 0 0 28px rgba(108,99,255,0.4), inset 0 0 10px rgba(108,99,255,0.06); border-color: rgba(108,99,255,0.65); }
+    33%      { box-shadow: 0 0 32px rgba(255,107,107,0.38), inset 0 0 10px rgba(255,107,107,0.05); border-color: rgba(255,107,107,0.6); }
+    66%      { box-shadow: 0 0 32px rgba(78,205,196,0.38), inset 0 0 10px rgba(78,205,196,0.05); border-color: rgba(78,205,196,0.6); }
+  }
+  .game-card-icon {
+    font-size: 2.6rem;
+    display: block;
+    margin-bottom: 6px;
+    animation: iconFloat 3s ease-in-out infinite;
+  }
+  @keyframes iconFloat {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+  }
+  .game-card-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.92);
+    margin-bottom: 12px;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.7);
+    line-height: 1.2;
+  }
+  .game-card-play-btn {
+    background: linear-gradient(135deg, #6C63FF, #9c94ff);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 7px 18px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 3px 12px rgba(108,99,255,0.45);
+    letter-spacing: 0.3px;
+  }
+  .game-card-play-btn:hover {
+    background: linear-gradient(135deg, #5a52e0, #8880ee);
+    box-shadow: 0 6px 20px rgba(108,99,255,0.65);
+    transform: translateY(-1px);
+  }
+
+  /* ══════════════════════════════════════
+     HABITACIÓN VACÍA
+  ══════════════════════════════════════ */
+  .room-empty {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 20;
+  }
+  .room-empty-card {
+    background: rgba(15,10,50,0.78);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 28px;
+    padding: 36px 44px;
+    color: white;
+    border: 2px solid rgba(255,255,255,0.12);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    animation: popIn 0.5s cubic-bezier(.175,.885,.32,1.275) both;
+  }
+  .room-empty-emoji {
+    font-size: 4rem;
+    margin-bottom: 12px;
+    display: block;
+    animation: emptyBounce 2s ease-in-out infinite;
+  }
+  @keyframes emptyBounce {
+    0%,100% { transform: translateY(0) rotate(0); }
+    50%      { transform: translateY(-10px) rotate(-5deg); }
+  }
+  .room-empty-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+    color: #FFE66D;
+  }
+  .room-empty-sub {
+    font-size: 0.9rem;
+    font-weight: 700;
+    opacity: 0.8;
+    margin-bottom: 20px;
+  }
+  .room-empty a {
+    display: inline-block;
+    background: linear-gradient(135deg, #6C63FF, #a78bfa);
+    color: white !important;
+    text-decoration: none !important;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    padding: 12px 28px;
+    border-radius: 50px;
+    box-shadow: 0 6px 20px rgba(108,99,255,0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .room-empty a:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 10px 30px rgba(108,99,255,0.65);
+  }
+
+  /* ══════════════════════════════════════
+     CONTADOR DE ITEMS (HUD inferior)
+  ══════════════════════════════════════ */
+  .room-item-count {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.75);
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(8px);
+    padding: 5px 16px;
+    border-radius: 50px;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+  }
+
+  /* ══════════════════════════════════════
+     MODAL GENÉRICO
+  ══════════════════════════════════════ */
+  .room-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8,5,35,0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .room-modal-overlay.active { display: flex; }
+
+  .room-modal-box {
+    background: white;
+    border-radius: 28px;
+    padding: 32px 32px 28px;
+    width: 95%;
+    max-height: 92vh;
+    overflow-y: auto;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+    animation: popIn 0.45s cubic-bezier(.175,.885,.32,1.275) both;
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.4) rotate(-3deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0); opacity: 1; }
+  }
+
+  /* Header del modal de objeto */
+  .modal-item-header {
+    background: linear-gradient(135deg, #f0eeff, #e8f4ff);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .modal-close-btn {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: #f0eeff;
+    border: none;
+    border-radius: 50%;
+    width: 38px; height: 38px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.15s;
+    z-index: 10;
+  }
+  .modal-close-btn:hover { background: #e0d8ff; transform: scale(1.1) rotate(90deg); }
+
+  /* ══════════════════════════════════════
+     CANVAS / JUEGOS
+  ══════════════════════════════════════ */
+  canvas { display: block; margin: 0 auto; border-radius: 14px; max-width: 100%; }
+  .game-hint {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #aaa;
+    margin-top: 8px;
+    font-family: 'Nunito', sans-serif;
+  }
+  .btn-game-action {
+    background: linear-gradient(135deg, var(--primary), #9c94ff);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 32px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    cursor: pointer;
+    margin-top: 14px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(108,99,255,0.38);
+  }
+  .btn-game-action:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108,99,255,0.55); }
+
+  /* ══════════════════════════════════════
+     TOAST DE LOGRO NUEVO
+  ══════════════════════════════════════ */
+  .room-toast {
+    position: fixed;
+    bottom: 28px;
+    right: 24px;
+    z-index: 99999;
+    background: linear-gradient(135deg, #6C63FF, #a78bfa);
+    color: white;
+    font-family: 'Fredoka One', cursive;
+    border-radius: 20px;
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 36px rgba(108,99,255,0.5);
+    transform: translateY(120%);
+    transition: transform 0.45s cubic-bezier(.22,1,.36,1);
+    max-width: 300px;
+  }
+  .room-toast.show { transform: translateY(0); }
+  .room-toast-emoji { font-size: 2rem; flex-shrink: 0; }
+  .room-toast-title { font-size: 0.95rem; line-height: 1.3; }
+  .room-toast-sub   { font-size: 0.78rem; opacity: 0.85; }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<!-- ══════════════════════════════════════════════════════
+     HABITACIÓN
+══════════════════════════════════════════════════════════ -->
+<div class="room-page" id="roomPage">
+
+  <!-- Partículas de ambiente (generadas por JS) -->
+  <div id="particles"></div>
+
+  <!-- ── HUD ─────────────────────────────────────────── -->
+  <div class="room-hud hud-bones">
+    🦴 <span class="hud-count">{{ huesos }}</span>
+  </div>
+  <a href="{% url 'accounts:dashboard_estudiante' %}" class="room-hud hud-panel"><i class="bi bi-caret-left-fill"></i>My Dashboard</a>
+  <a href="{% url 'games:tienda' %}" class="room-hud hud-shop"><i class="bi bi-shop"></i> Store</a>
+
+
+  <!-- ── Hitbox invisible de la cama ─────────────────── -->
+  <!-- Ajustar left/top/width/height según la posición real de la cama en h_dia.png -->
+  <div id="bedHitbox" style="
+    position: absolute;
+    left: 0%;  top: 28%;
+    width: 30%; height: 44%;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+  "></div>
+
+  <!-- ── Milo ────────────────────────────────────────── -->
+  <div class="milo-lector" id="miloLector">
+    <div class="milo-bubble" id="miloBubble" style="min-width:180px">
+      <span id="miloBubbleText">Welcome to my room! 🎉</span>
+    </div>
+  
+    <div class="milo-lector-wrap">
+      <!-- Usa milo_saludando como imagen principal (existe en el proyecto) -->
+      <img src="{% static 'img/milo_saludando.png' %}"
+           class="milo-lector-img" id="miloImg" alt="Milo">
+    </div>
+  </div>
+
+  <!-- ── Items del inventario ───────────────────────── -->
+  {% for inv in inventario %}
+    {% if inv.item.juego_entretenimiento != 'ninguno' %}
+    <!-- Item con minijuego -->
+    <div class="room-game-card"
+         style="left:{{ inv.item.posicion_x }}%;bottom:calc(32% + {{ inv.item.posicion_y }}px)">
+      <span class="game-card-icon">
+        {% if inv.item.juego_entretenimiento == 'flappy_milo' %}🐦{% else %}🐍{% endif %}
+      </span>
+      <div class="game-card-name">{{ inv.item.nombre }}</div>
+      <button class="game-card-play-btn"
+              onclick="abrirJuego('{{ inv.item.juego_entretenimiento }}', '{{ inv.item.nombre }}', '{{ inv.item.icono }}')">
+        ▶ Play!
+      </button>
+    </div>
+
+    {% else %}
+    <!-- Item decorativo — arrastrable y redimensionable -->
+    <div class="room-item room-item-drag"
+         data-inv-id="{{ inv.pk }}"
+         data-pos-x="{{ inv.pos_x }}"
+         data-pos-y="{{ inv.pos_y }}"
+         data-escala="{{ inv.escala }}">
+      <div class="drag-handle" title="Drag">⠿</div>
+      {% if inv.item.imagen %}
+        <img src="{{ inv.item.imagen.url }}" class="item-img-room" alt="{{ inv.item.nombre }}">
+      {% else %}
+        <img src="{% get_static_prefix %}img/ob_{{ inv.item.pk }}.png"
+             class="item-img-room"
+             alt="{{ inv.item.nombre }}"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <span class="item-emoji-big" style="display:none">{{ inv.item.icono }}</span>
+      {% endif %}
+      <div class="item-controls">
+        <button class="item-ctrl-btn" onclick="cambiarEscala(this.closest('.room-item-drag'), 0.15)" title="Enlarge">＋</button>
+        <button class="item-ctrl-btn" onclick="cambiarEscala(this.closest('.room-item-drag'), -0.15)" title="Shrink">－</button>
+        <button class="item-ctrl-btn item-ctrl-info" onclick="verItemDrag(this)" title="Info">ℹ</button>
+      </div>
+      <span class="item-label">{{ inv.item.nombre }}</span>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  <!-- ── Habitación vacía ───────────────────────────── -->
+  {% if not inventario %}
+  <div class="room-empty">
+    <div class="room-empty-card">
+      <span class="room-empty-emoji"><i class="bi bi-emoji-tear-fill"></i></span>
+      <div class="room-empty-title">Your room is empty!</div>
+      <div class="room-empty-sub">Earn bones 🦴 by playing and buy cool stuff</div>
+      <a href="{% url 'games:tienda' %}"><i class="bi bi-bag-dash-fill"></i> Go to the Store</a>
+    </div>
+  </div>
+  {% else %}
+  <!-- Contador de items -->
+  <div class="room-item-count">
+    ✨ {{ inventario|length }} item{% if inventario|length != 1 %}s{% endif %} in your room
+  </div>
+  {% endif %}
+
+</div><!-- /room-page -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL — Info objeto decorativo
+══════════════════════════════════════════════════════════ -->
+<div id="infoModal" class="room-modal-overlay">
+  <div class="room-modal-box" style="max-width:360px">
+    <button class="modal-close-btn" onclick="cerrarInfo()">✕</button>
+    <div class="modal-item-header">
+      <div id="infoEmoji" style="font-size:4rem;margin-bottom:4px"></div>
+      <div id="infoNombre"
+           style="font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--primary)"></div>
+    </div>
+    <div id="infoDesc" style="color:#555;font-size:0.95rem;font-weight:700;margin-bottom:4px;line-height:1.5"></div>
+    <div style="margin-top:8px;font-size:0.8rem;color:#aaa;font-weight:600">
+      This item makes your room more special! ✨
+    </div>
+    <button class="btn-game-action" onclick="cerrarInfo()" style="margin-top:20px;width:100%">
+      👍 Cool!
+    </button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL — Juego casual
+══════════════════════════════════════════════════════════ -->
+<div id="gameModal" class="room-modal-overlay">
+  <div class="room-modal-box" id="gameModalBox" style="max-width:540px">
+    <button class="modal-close-btn" onclick="cerrarJuego()">✕</button>
+    <div id="gameContent"></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     TOAST — Logros nuevos
+══════════════════════════════════════════════════════════ -->
+{% for logro in logros_nuevos %}
+<div class="room-toast" id="toast-{{ logro.pk }}" data-delay="{{ forloop.counter0 }}">
+  <div class="room-toast-emoji">{{ logro.logro.icono }}</div>
+  <div>
+    <div class="room-toast-title">New achievement unlocked!</div>
+    <div class="room-toast-sub">{{ logro.logro.nombre }}</div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* ══════════════════════════════════════════════════════
+   ALTURA DINÁMICA
+══════════════════════════════════════════════════════════ */
+(function () {
+  const room = document.getElementById('roomPage');
+  const nav  = document.querySelector('.nestgrow-navbar');
+  function fit() {
+    if (room && nav) room.style.height = (window.innerHeight - nav.offsetHeight) + 'px';
+  }
+  fit();
+  window.addEventListener('resize', fit);
+})();
+
+
+/* ══════════════════════════════════════════════════════
+   MILO — FRASES Y MOOD
+══════════════════════════════════════════════════════════ */
+const MILO_DEFAULT_IMG = "{% static 'img/milo_saludando.png' %}";
+const MILO_CLICK_IMG   = "{% static 'img/milo_asombrado2.png' %}";
+const MILO_HAB_MSG     = '🏠 This is your room, decorate it however you want with the Bones you have earned!';
+
+let miloIdx = 0, miloPhraseIdx = 0; // declaradas para evitar ReferenceError
+
+
+/* ══════════════════════════════════════════════════════
+   TOAST DE LOGROS
+══════════════════════════════════════════════════════════ */
+document.querySelectorAll('.room-toast').forEach(toast => {
+  const delay = parseInt(toast.dataset.delay || 0) * 2500 + 1000;
+  setTimeout(() => {
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4500);
+  }, delay);
+});
+
+
+/* ══════════════════════════════════════════════════════
+   MODAL — Info objeto decorativo
+══════════════════════════════════════════════════════════ */
+function verItem(nombre, desc, emoji) {
+  document.getElementById('infoEmoji').textContent  = emoji;
+  document.getElementById('infoNombre').textContent = nombre;
+  document.getElementById('infoDesc').textContent   = desc;
+  document.getElementById('infoModal').classList.add('active');
+}
+function cerrarInfo() {
+  document.getElementById('infoModal').classList.remove('active');
+}
+document.getElementById('infoModal').addEventListener('click', function(e) {
+  if (e.target === this) cerrarInfo();
+});
+
+
+/* ══════════════════════════════════════════════════════
+   MODAL — Juego casual (Flappy / Snake)
+══════════════════════════════════════════════════════════ */
+let flappyRAF     = null;
+let snakeInterval = null;
+let activeGame    = null;
+let activeKey     = null;
+
+function setKey(fn) {
+  if (activeKey) document.removeEventListener('keydown', activeKey);
+  activeKey = fn;
+  if (fn) document.addEventListener('keydown', fn);
+}
+
+function abrirJuego(tipo, nombre, emoji) {
+  const labels = { flappy_milo: '🐦 Flappy Milo', snake_milo: '🐍 Milo\'s Snake' };
+  document.getElementById('gameContent').innerHTML = `
+    <div style="font-size:2.6rem;margin-bottom:4px">${emoji}</div>
+    <div style="font-family:'Fredoka One',cursive;font-size:1.3rem;color:var(--primary);margin-bottom:2px">${nombre}</div>
+    <div style="font-size:0.82rem;color:#aaa;font-weight:700;margin-bottom:18px">${labels[tipo] || tipo}</div>
+    <div id="gameArea"></div>
+  `;
+  document.getElementById('gameModal').classList.add('active');
+  activeGame = tipo;
+  if (tipo === 'flappy_milo') initFlappy();
+  else if (tipo === 'snake_milo') initSnake();
+}
+
+function cerrarJuego() {
+  if (flappyRAF)     { cancelAnimationFrame(flappyRAF); flappyRAF = null; }
+  if (snakeInterval) { clearInterval(snakeInterval); snakeInterval = null; }
+  setKey(null);
+  activeGame = null;
+  document.getElementById('gameContent').innerHTML = '';
+  document.getElementById('gameModal').classList.remove('active');
+}
+document.getElementById('gameModal').addEventListener('click', function(e) {
+  if (e.target === this) cerrarJuego();
+});
+
+
+/* ══════════════════════════════════════════════════════
+   JUEGO 1 — FLAPPY MILO
+══════════════════════════════════════════════════════════ */
+function initFlappy() {
+  document.getElementById('gameArea').innerHTML = `
+    <canvas id="fc" width="460" height="300" style="cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,0.3)"></canvas>
+    <p class="game-hint">Click · Space to fly 🐦</p>
+  `;
+  const cv  = document.getElementById('fc');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const GRAV = 0.44, FLAP = -9, SPD = 2.7, GAP = 148, PW = 54, R = 16;
+  let milo, pipes, score, frame, running, started;
+
+  function reset() {
+    milo = { x:85, y:H/2, vy:0 }; pipes=[]; score=0; frame=0; running=true;
+  }
+  function spawnPipe() {
+    const top = 46 + Math.random() * (H - GAP - 74);
+    pipes.push({ x: W+20, top, passed:false });
+  }
+  function drawBg() {
+    const sk = ctx.createLinearGradient(0,0,0,H);
+    sk.addColorStop(0,'#87CEEB'); sk.addColorStop(1,'#C6EEFF');
+    ctx.fillStyle = sk; ctx.fillRect(0,0,W,H);
+    // nubes decorativas
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    [[60,40,30],[140,55,22],[280,30,28],[380,50,25]].forEach(([cx,cy,r]) => {
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+r*0.8,cy+5,r*0.75,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx-r*0.7,cy+4,r*0.7,0,Math.PI*2); ctx.fill();
+    });
+    ctx.fillStyle = '#5D9A2B'; ctx.fillRect(0, H-28, W, 28);
+    ctx.fillStyle = '#7A5230'; ctx.fillRect(0, H-18, W, 18);
+  }
+  function drawPipes() {
+    for (const p of pipes) {
+      const g = ctx.createLinearGradient(p.x,0,p.x+PW,0);
+      g.addColorStop(0,'#3ABFB7'); g.addColorStop(1,'#4ECDC4');
+      ctx.fillStyle = g;
+      ctx.fillRect(p.x, 0, PW, p.top);
+      ctx.fillRect(p.x, p.top+GAP, PW, H-p.top-GAP-28);
+      ctx.fillStyle = '#2DA8A0';
+      ctx.fillRect(p.x-5, p.top-18, PW+10, 18);
+      ctx.fillRect(p.x-5, p.top+GAP, PW+10, 18);
+    }
+  }
+  function drawMilo() {
+    ctx.fillStyle = '#6C63FF';
+    ctx.beginPath(); ctx.arc(milo.x, milo.y, R, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#9c94ff'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(milo.x, milo.y, R, 0, Math.PI*2); ctx.stroke();
+    ctx.font = `${R*1.7}px Apple Color Emoji, Segoe UI Emoji, serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('🐺', milo.x, milo.y+1);
+  }
+  function drawScore() {
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.font='bold 30px Fredoka One,cursive';
+    ctx.fillText(score, W/2+1, 44);
+    ctx.fillStyle='white'; ctx.fillText(score, W/2, 43);
+  }
+  function drawStart() {
+    drawBg(); drawMilo();
+    ctx.fillStyle='rgba(0,0,0,0.48)'; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';
+    ctx.fillStyle='white'; ctx.font='bold 30px Fredoka One,cursive'; ctx.fillText('Flappy Milo!', W/2, H/2-28);
+    ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font='15px Nunito,sans-serif'; ctx.fillText('Click or Space to fly', W/2, H/2+8);
+    ctx.fillStyle='#FFE66D'; ctx.font='13px Nunito,sans-serif'; ctx.fillText('Dodge the obstacles', W/2, H/2+34);
+  }
+  function gameOver() {
+    running=false;
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';
+    ctx.fillStyle='#FF6B6B'; ctx.font='bold 36px Fredoka One,cursive'; ctx.fillText('Game Over!', W/2, H/2-30);
+    ctx.fillStyle='white'; ctx.font='bold 20px Nunito,sans-serif'; ctx.fillText('Score: '+score+' 🏆', W/2, H/2+8);
+    ctx.fillStyle='#FFE66D'; ctx.font='13px Nunito,sans-serif'; ctx.fillText('Click or Space to restart', W/2, H/2+40);
+  }
+  function flap() {
+    if (!started) { started=true; reset(); loop(); return; }
+    if (!running) { reset(); if(flappyRAF) cancelAnimationFrame(flappyRAF); loop(); return; }
+    milo.vy = FLAP;
+  }
+  function loop() {
+    frame++; milo.vy += GRAV; milo.y += milo.vy;
+    if (frame%80===0) spawnPipe();
+    pipes.forEach(p => { p.x -= SPD; if(!p.passed && p.x+PW < milo.x){ p.passed=true; score++; } });
+    pipes = pipes.filter(p => p.x+PW>0);
+    if (milo.y+R > H-28 || milo.y-R < 0) { drawBg(); drawPipes(); drawMilo(); drawScore(); gameOver(); return; }
+    for (const p of pipes) {
+      if (milo.x+R > p.x && milo.x-R < p.x+PW) {
+        if (milo.y-R < p.top || milo.y+R > p.top+GAP) { drawBg(); drawPipes(); drawMilo(); drawScore(); gameOver(); return; }
+      }
+    }
+    drawBg(); drawPipes(); drawMilo(); drawScore();
+    flappyRAF = requestAnimationFrame(loop);
+  }
+  started=false; drawStart();
+  cv.addEventListener('click', flap);
+  setKey(e => { if(activeGame!=='flappy_milo') return; if(e.code==='Space'){e.preventDefault();flap();} });
+}
+
+
+/* ══════════════════════════════════════════════════════
+   JUEGO 2 — SNAKE DE MILO
+══════════════════════════════════════════════════════════ */
+function initSnake() {
+  document.getElementById('gameArea').innerHTML = `
+    <div id="snkScore" style="font-family:'Fredoka One',cursive;font-size:1.35rem;color:var(--primary);margin-bottom:10px">🦴 0</div>
+    <canvas id="sc" width="400" height="400" style="background:#1a1a2e;box-shadow:0 8px 30px rgba(0,0,0,0.4)"></canvas>
+    <p class="game-hint">Arrow keys · Space to restart 🐍</p>
+  `;
+  const cv=document.getElementById('sc'), ctx=cv.getContext('2d');
+  const COLS=20,ROWS=20,SZ=20;
+  let snake,dir,nextDir,food,score,gameState;
+
+  function randFood() {
+    let f; do { f={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)}; }
+    while(snake && snake.some(s=>s.x===f.x&&s.y===f.y)); return f;
+  }
+  function drawRR(x,y,w,h,r) {
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+    ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+    ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+    ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+  }
+  function draw() {
+    ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,COLS*SZ,ROWS*SZ);
+    ctx.strokeStyle='rgba(108,99,255,0.07)'; ctx.lineWidth=1;
+    for(let i=0;i<=COLS;i++){ctx.beginPath();ctx.moveTo(i*SZ,0);ctx.lineTo(i*SZ,ROWS*SZ);ctx.stroke();}
+    for(let j=0;j<=ROWS;j++){ctx.beginPath();ctx.moveTo(0,j*SZ);ctx.lineTo(COLS*SZ,j*SZ);ctx.stroke();}
+    ctx.font=SZ+'px Apple Color Emoji,Segoe UI Emoji,serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🦴',food.x*SZ+SZ/2,food.y*SZ+SZ/2);
+    snake.forEach((seg,i)=>{
+      const head=i===0;
+      ctx.fillStyle=head?'#6C63FF':(i%2===0?'#9c94ff':'#8880ee');
+      const p=2,r=4; drawRR(seg.x*SZ+p,seg.y*SZ+p,SZ-p*2,SZ-p*2,r); ctx.fill();
+      if(head){
+        const cx=seg.x*SZ+SZ/2,cy=seg.y*SZ+SZ/2;
+        let ex1,ey1,ex2,ey2;
+        if(dir.x===1){ex1=cx+4;ey1=cy-3;ex2=cx+4;ey2=cy+3;}
+        else if(dir.x===-1){ex1=cx-4;ey1=cy-3;ex2=cx-4;ey2=cy+3;}
+        else if(dir.y===-1){ex1=cx-3;ey1=cy-4;ex2=cx+3;ey2=cy-4;}
+        else{ex1=cx-3;ey1=cy+4;ex2=cx+3;ey2=cy+4;}
+        ctx.fillStyle='white';
+        ctx.beginPath();ctx.arc(ex1,ey1,3,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(ex2,ey2,3,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#1a1a2e';
+        ctx.beginPath();ctx.arc(ex1+0.6,ey1+0.6,1.5,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(ex2+0.6,ey2+0.6,1.5,0,Math.PI*2);ctx.fill();
+      }
+    });
+    const el=document.getElementById('snkScore');
+    if(el) el.textContent='🦴 '+score;
+  }
+  function drawOverlay(title,tc,sub,hint){
+    ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(0,0,COLS*SZ,ROWS*SZ);
+    ctx.textAlign='center';
+    ctx.fillStyle=tc; ctx.font='bold 28px Fredoka One,cursive'; ctx.fillText(title,COLS*SZ/2,ROWS*SZ/2-22);
+    ctx.fillStyle='white'; ctx.font='bold 16px Nunito,sans-serif'; ctx.fillText(sub,COLS*SZ/2,ROWS*SZ/2+8);
+    ctx.fillStyle='#FFE66D'; ctx.font='13px Nunito,sans-serif'; ctx.fillText(hint,COLS*SZ/2,ROWS*SZ/2+40);
+  }
+  function startGame(){
+    snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+    dir={x:1,y:0}; nextDir={x:1,y:0}; food=randFood(); score=0; gameState='running'; draw();
+  }
+  function step(){
+    if(gameState!=='running') return;
+    dir={...nextDir};
+    const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+    if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS){
+      gameState='dead'; draw(); drawOverlay('Game Over!','#FF6B6B','🦴 '+score+' bones','Space to restart'); return;
+    }
+    if(snake.some(s=>s.x===head.x&&s.y===head.y)){
+      gameState='dead'; draw(); drawOverlay('Game Over!','#FF6B6B','🦴 '+score+' bones','Space to restart'); return;
+    }
+    snake.unshift(head);
+    if(head.x===food.x&&head.y===food.y){score++;food=randFood();}else snake.pop();
+    draw();
+  }
+  if(snakeInterval) clearInterval(snakeInterval);
+  gameState='idle'; food={x:10,y:10}; snake=[{x:10,y:10}]; dir={x:1,y:0}; score=0;
+  draw(); drawOverlay('🐍 Milo\'s Snake','white','Arrow keys to move','Space to start');
+  snakeInterval=setInterval(step,135);
+  setKey(e=>{
+    if(activeGame!=='snake_milo') return;
+    const map={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0}};
+    if(map[e.key]){e.preventDefault();const nd=map[e.key];if(nd.x!==-dir.x||nd.y!==-dir.y)nextDir=nd;if(gameState==='idle')startGame();}
+    if(e.code==='Space'){e.preventDefault();if(gameState!=='running')startGame();}
+  });
+}
+
+/* ─────────────────────────────
+   DRAG & DROP MILO + DORMIR + CLICK
+───────────────────────────── */
+const milo = document.getElementById("miloLector");
+const room = document.getElementById("roomPage");
+
+let dragging      = false;
+let offsetX       = 0;
+let offsetY       = 0;
+let estaDormido   = false;
+let miloMouseStartX = 0, miloMouseStartY = 0;
+let miloMoved     = false;
+const DRAG_THRESHOLD = 6; // px — menos de esto se considera click
+
+let initialGreetDismissed = false;
+
+/* ─────────────────────────────
+   HOVER: descarta saludo inicial → vuelve a saludando
+───────────────────────────── */
+milo.addEventListener('mouseenter', () => {
+  if (!initialGreetDismissed) {
+    initialGreetDismissed = true;
+    const bubble = document.getElementById('miloBubble');
+    const img    = document.getElementById('miloImg');
+    if (bubble) { bubble.style.opacity = ''; bubble.style.transform = ''; }
+    if (img && !estaDormido) { img.src = MILO_DEFAULT_IMG; img.style.transform = ''; }
+  }
+});
+
+milo.addEventListener("mousedown", (e) => {
+  dragging = true;
+  miloMoved = false;
+  miloMouseStartX = e.clientX;
+  miloMouseStartY = e.clientY;
+  offsetX = e.clientX - milo.offsetLeft;
+  offsetY = e.clientY - milo.offsetTop;
+  milo.style.transition = "none";
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (!dragging) return;
+  const dx = Math.abs(e.clientX - miloMouseStartX);
+  const dy = Math.abs(e.clientY - miloMouseStartY);
+  if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) miloMoved = true;
+  if (!miloMoved) return;
+  milo.style.left   = (e.clientX - offsetX) + "px";
+  milo.style.top    = (e.clientY - offsetY) + "px";
+  milo.style.bottom = "auto";
+  // Revertir a modo día en tiempo real si Milo sale de la zona de la cama
+  if (estaDormido) checkBed();
+});
+
+document.addEventListener("mouseup", () => {
+  if (!dragging) return;
+  dragging = false;
+  if (miloMoved) checkBed();
+  miloMoved = false;
+});
+
+/* ─────────────────────────────
+   DETECTAR CAMA — colisión AABB entre Milo y #bedHitbox
+───────────────────────────── */
+function checkBed() {
+  const miloRect = milo.getBoundingClientRect();
+  const bedRect  = document.getElementById('bedHitbox').getBoundingClientRect();
+
+  const overlap = miloRect.right  > bedRect.left  &&
+                  miloRect.left   < bedRect.right  &&
+                  miloRect.bottom > bedRect.top    &&
+                  miloRect.top    < bedRect.bottom;
+
+  if (overlap && !estaDormido) dormirMilo();
+  if (!overlap && estaDormido) despertarMilo();
+}
+
+/* ─────────────────────────────
+   MILO SE DUERME 🌙
+───────────────────────────── */
+function dormirMilo() {
+  estaDormido = true;
+  const img = document.getElementById('miloImg');
+  if (img) { img.src = "{% static 'img/milo_dormido.png' %}"; img.style.transform = 'scale(1.22)'; }
+  room.style.setProperty(
+    'background',
+    "url('{% static 'img/h_noche.png' %}') center center / cover no-repeat",
+    'important'
+  );
+}
+
+/* ─────────────────────────────
+   MILO SE DESPIERTA ☀️
+───────────────────────────── */
+function despertarMilo() {
+  estaDormido = false;
+  const img = document.getElementById('miloImg');
+  if (img) { img.src = MILO_DEFAULT_IMG; img.style.transform = ''; }
+  room.style.setProperty(
+    'background',
+    "url('{% static 'img/h_dia.png' %}') center center / cover no-repeat",
+    'important'
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   ITEMS ARRASTRABLES + REDIMENSIONABLES
+═══════════════════════════════════════════════════ */
+const SAVE_URL  = "{% url 'games:guardar_posicion_item' %}";
+const CSRF_INV  = document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? '';
+
+/* ──────────────────────────────────────────────
+   Sistema de posición: left% (0-100) + top% (0-100)
+   Cubre toda la habitación sin restricciones.
+────────────────────────────────────────────── */
+
+/* Aplica posición y escala desde data-* al cargar.
+   Migra automáticamente valores del sistema antiguo (bottom-px) al nuevo (top%). */
+document.querySelectorAll('.room-item-drag').forEach(el => {
+  let px     = parseFloat(el.dataset.posX)   || 50;
+  let py     = parseFloat(el.dataset.posY);
+  const escala = parseFloat(el.dataset.escala) || 1.0;
+
+  // Detección del sistema antiguo: pos_y era píxeles desde una línea al 32% del fondo.
+  // Valores fuera del rango 0-100 indican sistema viejo → convertir a top%.
+  if (isNaN(py) || py < 0 || py > 100) {
+    const roomH = room.offsetHeight || 600;
+    // Fórmula inversa: top% = (1 - 0.32 - py_old/roomH) * 100
+    py = Math.max(5, Math.min(90, (1 - 0.32 - (py || 0) / roomH) * 100));
+    el.dataset.posY = py.toFixed(1);
+    // Guardar la posición migrada en BD (autosave tras 200ms para no bloquear el render)
+    setTimeout(() => scheduleItemSave(el), 200);
+  }
+
+  el.style.position        = 'absolute';
+  el.style.left            = px + '%';
+  el.style.top             = py + '%';
+  el.style.bottom          = 'auto';
+  el.style.transform       = 'scale(' + escala + ')';
+  el.style.transformOrigin = 'center center';
+});
+
+/* Autosave con debounce por ítem — guarda en InventarioEstudiante */
+const saveTimers = {};
+function scheduleItemSave(el) {
+  const invId = el.dataset.invId;
+  clearTimeout(saveTimers[invId]);
+  saveTimers[invId] = setTimeout(() => {
+    const px     = parseFloat(el.dataset.posX)   || 50;
+    const py     = parseFloat(el.dataset.posY)   || 30;
+    const escala = parseFloat(el.dataset.escala) || 1.0;
+    fetch(SAVE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_INV },
+      body: JSON.stringify({ inv_id: parseInt(invId), pos_x: px, pos_y: py, escala })
+    }).then(r => r.json()).then(d => {
+      if (d.status !== 'ok') console.warn('Could not save position:', d);
+    });
+  }, 600);
+}
+
+/* ── Drag (mouse + touch) — toda la habitación ── */
+let dragEl = null, dragStartX = 0, dragStartY = 0, dragOrigLeft = 0, dragOrigTop = 0;
+
+function getPageXY(e) {
+  return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+                   : { x: e.clientX, y: e.clientY };
+}
+
+document.querySelectorAll('.room-item-drag').forEach(el => {
+  function onStart(e) {
+    if (e.target.closest('.item-ctrl-btn')) return;
+    e.preventDefault();
+    dragEl       = el;
+    const p      = getPageXY(e);
+    dragStartX   = p.x;
+    dragStartY   = p.y;
+    dragOrigLeft = parseFloat(el.dataset.posX) || 50;
+    dragOrigTop  = parseFloat(el.dataset.posY) || 30;
+    el.classList.add('dragging');
+  }
+  el.addEventListener('mousedown',  onStart);
+  el.addEventListener('touchstart', onStart, { passive: false });
+});
+
+document.addEventListener('mousemove',  onDragMove);
+document.addEventListener('touchmove',  onDragMove, { passive: false });
+document.addEventListener('mouseup',    onDragEnd);
+document.addEventListener('touchend',   onDragEnd);
+
+function onDragMove(e) {
+  if (!dragEl) return;
+  e.preventDefault();
+  const p     = getPageXY(e);
+  const roomW = room.offsetWidth;
+  const roomH = room.offsetHeight;
+  const dx    = p.x - dragStartX;
+  const dy    = p.y - dragStartY;
+  /* left y top como porcentaje — 0 a 100, sin restricciones adicionales */
+  const newPx = Math.max(0, Math.min(100, dragOrigLeft + (dx / roomW * 100)));
+  const newPy = Math.max(0, Math.min(100, dragOrigTop  + (dy / roomH * 100)));
+  dragEl.style.left    = newPx + '%';
+  dragEl.style.top     = newPy + '%';
+  dragEl.style.bottom  = 'auto';
+  dragEl.dataset.posX  = newPx.toFixed(1);
+  dragEl.dataset.posY  = newPy.toFixed(1);
+}
+
+function onDragEnd() {
+  if (!dragEl) return;
+  dragEl.classList.remove('dragging');
+  scheduleItemSave(dragEl);
+  dragEl = null;
+}
+
+/* ── Cambio de escala con botones ── */
+function cambiarEscala(el, delta) {
+  const actual  = parseFloat(el.dataset.escala) || 1.0;
+  const nueva   = Math.max(0.3, Math.min(3.0, actual + delta));
+  el.dataset.escala   = nueva.toFixed(2);
+  el.style.transform  = 'scale(' + nueva + ')';
+  scheduleItemSave(el);
+}
+
+/* ── Scroll para redimensionar (hover) ── */
+document.querySelectorAll('.room-item-drag').forEach(el => {
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    cambiarEscala(el, e.deltaY < 0 ? 0.08 : -0.08);
+  }, { passive: false });
+});
+
+/* ── Info desde botón ── */
+function verItemDrag(btn) {
+  const el    = btn.closest('.room-item-drag');
+  const img   = el.querySelector('img');
+  const label = el.querySelector('.item-label');
+  const nombre = label ? label.textContent.trim() : '?';
+  verItem(nombre, '', '');
+}
+
+/* ─────────────────────────────
+   ESTADO INICIAL: milo_asombrado2 + burbuja al abrir la página
+   Persiste hasta que el estudiante pase el mouse por encima de Milo
+───────────────────────────── */
+(function initMiloGreeting() {
+  const img    = document.getElementById('miloImg');
+  const bubble = document.getElementById('miloBubble');
+  if (img)    { img.src = MILO_CLICK_IMG; img.style.transform = 'scale(0.88)'; }
+  if (bubble) {
+    bubble.style.opacity   = '1';
+    bubble.style.transform = 'translateX(-50%) translateY(0)';
+  }
+})();
+</script>
+{% endblock %}

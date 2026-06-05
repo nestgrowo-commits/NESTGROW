@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+  @keyframes podiumRise {
+    from { opacity: 0; transform: translateY(60px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInUp {
+    from { opacity:0; transform:translateY(16px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes floatStar {
+    0%,100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-8px) rotate(10deg); }
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50%      { transform: scale(1.08); }
+  }
+  .ranking-hero {
+    background: linear-gradient(135deg, #6C63FF, #9c94ff, #4ECDC4);
+    border-radius: 28px;
+    padding: 2rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .ranking-hero::before {
+    content:'';
+    position:absolute;
+    width:200px;height:200px;
+    background:rgba(255,255,255,0.08);
+    border-radius:50%;
+    top:-80px;right:-60px;
+  }
+  .ranking-hero::after {
+    content:'';
+    position:absolute;
+    width:150px;height:150px;
+    background:rgba(255,255,255,0.06);
+    border-radius:50%;
+    bottom:-50px;left:20%;
+  }
+  .hero-star {
+    position: absolute;
+    animation: floatStar 2.5s ease-in-out infinite;
+  }
+
+  /* Pódium */
+  .podium-wrap {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 16px;
+    margin: 2rem 0 2.5rem;
+  }
+  .podium-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .podium-col.p1 { animation: podiumRise 0.7s cubic-bezier(.22,1,.36,1) 0.4s both; }
+  .podium-col.p2 { animation: podiumRise 0.7s cubic-bezier(.22,1,.36,1) 0.1s both; }
+  .podium-col.p3 { animation: podiumRise 0.7s cubic-bezier(.22,1,.36,1) 0.25s both; }
+
+  /* Avatar del pódium */
+  .podium-avatar-wrap {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 8px;
+    border: 3px solid white;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    background: #f0eeff;
+  }
+  .podium-avatar-wrap.p1-wrap {
+    width: 80px;
+    height: 80px;
+    font-size: 2.6rem;
+    animation: pulse 2s ease-in-out infinite;
+    border-color: #FFE66D;
+    box-shadow: 0 8px 25px rgba(255,179,71,0.4);
+  }
+  .podium-avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .podium-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.95rem;
+    text-align: center;
+    max-width: 100px;
+    word-break: break-word;
+    color: #444;
+    margin-bottom: 3px;
+  }
+  .podium-pts {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 10px;
+  }
+  .podium-block {
+    border-radius: 16px 16px 0 0;
+    width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.2rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    color: white;
+  }
+  /* Colores del programa para el pódium */
+  .podium-block.gold   { height: 120px; background: linear-gradient(180deg,#6C63FF,#9c94ff); }
+  .podium-block.silver { height: 85px;  background: linear-gradient(180deg,#FF6B6B,#ff9494); }
+  .podium-block.bronze { height: 65px;  background: linear-gradient(180deg,#4ECDC4,#7ee8e2); }
+
+  .podium-me .podium-name { color: var(--primary); font-size:1rem; }
+
+  /* Filas ranking */
+  .rank-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 16px;
+    margin-bottom: 10px;
+    background: white;
+    box-shadow: 0 4px 15px rgba(108,99,255,0.08);
+    animation: fadeInUp 0.4s ease both;
+    transition: all 0.3s;
+  }
+  .rank-row:hover {
+    transform: translateX(5px);
+    box-shadow: 0 6px 20px rgba(108,99,255,0.15);
+  }
+  .rank-row.es-yo {
+    background: linear-gradient(135deg,#f0eeff,#e8e3ff);
+    border: 3px solid var(--primary);
+  }
+  .rank-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .rank-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    background: #f0eeff;
+    border: 2px solid #e8e4ff;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .rank-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:750px">
+
+  <!-- HERO -->
+  <div class="ranking-hero">
+    <i class="bi bi-star-fill hero-star" style="top:10%;left:5%;font-size:1.5rem;color:rgba(255,255,255,0.5);animation-delay:0s"></i>
+    <i class="bi bi-star-fill hero-star" style="top:20%;right:8%;font-size:1.2rem;color:rgba(255,255,255,0.4);animation-delay:0.5s"></i>
+    <i class="bi bi-sparkle-fill hero-star" style="bottom:15%;right:15%;font-size:1.8rem;color:rgba(255,255,255,0.3);animation-delay:1s"></i>
+    <i class="bi bi-star-fill hero-star" style="bottom:25%;left:8%;font-size:1rem;color:rgba(255,255,255,0.4);animation-delay:1.5s"></i>
+
+    <div class="text-center position-relative" style="z-index:1">
+      <i class="bi bi-trophy-fill" style="font-size:3.5rem;color:#FFE66D;
+               filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2))"></i>
+      <h2 class="font-fredoka mt-2 mb-0" style="font-size:2rem">Classroom Ranking</h2>
+      <p class="fw-bold mb-0" style="opacity:0.9">{{ salon.nombre }}</p>
+    </div>
+  </div>
+
+  <!-- MILO BANNER -->
+  <div class="milo-banner mb-4">
+    <img src="{% static 'img/milo_fest.png' %}" alt="Milo"
+         style="width:50px;height:50px;object-fit:contain">
+    <div class="milo-banner-text">
+      Keep playing to climb the ranking! Every point counts
+      <i class="bi bi-lightning-charge-fill text-warning"></i>
+    </div>
+  </div>
+
+  {% if ranking %}
+
+  <!-- PÓDIUM -->
+  <div class="podium-wrap">
+
+    <!-- 2do lugar -->
+    {% if ranking|length >= 2 %}
+    {% with ranking.1 as s %}
+    <div class="podium-col p2 {% if s == mi_perfil %}podium-me{% endif %}">
+      <div class="podium-avatar-wrap">
+        {% if s.avatar_kitchen_url %}
+          <img src="{{ s.avatar_kitchen_url }}" alt="avatar">
+        {% else %}
+          {{ s.avatar_emoji1|default:'🐶' }}
+        {% endif %}
+      </div>
+      <div class="podium-name">{{ s.user.get_full_name|default:s.user.username }}</div>
+      <div class="podium-pts">
+        <i class="bi bi-star-fill me-1" style="color:#FFE66D"></i>{{ s.puntos_totales }} pts
+      </div>
+      <div class="podium-block silver">2</div>
+    </div>
+    {% endwith %}
+    {% endif %}
+
+    <!-- 1er lugar -->
+    {% with ranking.0 as s %}
+    <div class="podium-col p1 {% if s == mi_perfil %}podium-me{% endif %}">
+      <div class="podium-avatar-wrap p1-wrap">
+        {% if s.avatar_kitchen_url %}
+          <img src="{{ s.avatar_kitchen_url }}" alt="avatar">
+        {% else %}
+          {{ s.avatar_emoji1|default:'🐶' }}
+        {% endif %}
+      </div>
+      <div class="podium-name">{{ s.user.get_full_name|default:s.user.username }}</div>
+      <div class="podium-pts">
+        <i class="bi bi-star-fill me-1" style="color:#FFE66D"></i>{{ s.puntos_totales }} pts
+      </div>
+      <div class="podium-block gold">1</div>
+    </div>
+    {% endwith %}
+
+    <!-- 3er lugar -->
+    {% if ranking|length >= 3 %}
+    {% with ranking.2 as s %}
+    <div class="podium-col p3 {% if s == mi_perfil %}podium-me{% endif %}">
+      <div class="podium-avatar-wrap">
+        {% if s.avatar_kitchen_url %}
+          <img src="{{ s.avatar_kitchen_url }}" alt="avatar">
+        {% else %}
+          {{ s.avatar_emoji1|default:'🐶' }}
+        {% endif %}
+      </div>
+      <div class="podium-name">{{ s.user.get_full_name|default:s.user.username }}</div>
+      <div class="podium-pts">
+        <i class="bi bi-star-fill me-1" style="color:#FFE66D"></i>{{ s.puntos_totales }} pts
+      </div>
+      <div class="podium-block bronze">3</div>
+    </div>
+    {% endwith %}
+    {% endif %}
+
+  </div>
+
+  <!-- RESTO DEL RANKING -->
+  {% if ranking|length > 3 %}
+  <div class="nestgrow-card p-3">
+    {% for est in ranking %}
+    {% if forloop.counter > 3 %}
+    <div class="rank-row {% if est == mi_perfil %}es-yo{% endif %}"
+         style="animation-delay:{{ forloop.counter|add:'-3' }}00ms">
+
+      <!-- Número -->
+      <div class="rank-num" style="background:#f0eeff;color:#888">
+        {{ forloop.counter }}
+      </div>
+
+      <!-- Avatar -->
+      <div class="rank-avatar">
+        {% if est.avatar_kitchen_url %}
+          <img src="{{ est.avatar_kitchen_url }}" alt="avatar">
+        {% else %}
+          {{ est.avatar_emoji1|default:'🐶' }}
+        {% endif %}
+      </div>
+
+      <!-- Nombre y nivel -->
+      <div class="flex-grow-1">
+        <div class="fw-bold">
+          {{ est.user.get_full_name|default:est.user.username }}
+          {% if est == mi_perfil %}
+          <span class="badge rounded-pill ms-2"
+                style="background:var(--primary);color:white;font-size:0.7rem">You!</span>
+          {% endif %}
+        </div>
+        <div class="text-muted small fw-bold">
+          <i class="bi bi-speedometer2 me-1"></i>Level {{ est.nivel }}
+        </div>
+      </div>
+
+      <!-- Puntos -->
+      <div class="text-end">
+        <div class="font-fredoka fs-5" style="color:var(--primary)">{{ est.puntos_totales }}</div>
+        <div class="text-muted small fw-bold">pts</div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="nestgrow-card p-5 text-center">
+    <img src="{% static 'img/milo_preocupado.png' %}" alt="Milo"
+         style="width:120px;filter:drop-shadow(0 8px 20px rgba(108,99,255,0.2));margin-bottom:1rem">
+    <p class="fw-bold text-muted mt-2">No students in the classroom yet!</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>launchConfetti();</script>
+
+{% endblock %}
