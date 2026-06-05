@@ -783,9 +783,11 @@ def _enviar_informes_bg(paquetes, periodo_titulo, periodo_pk, periodo_fecha_inic
     errores  = 0
 
     try:
-        # Abrir una sola conexión SMTP para todos los correos
-        smtp_conn = get_connection()
+        # Abrir conexión SMTP con timeout de 30s para detectar bloqueos de red
+        logger.info('[INFORME] Abriendo conexión SMTP...')
+        smtp_conn = get_connection(timeout=30)
         smtp_conn.open()
+        logger.info('[INFORME] Conexión SMTP abierta correctamente.')
 
         for p in paquetes:
             try:
