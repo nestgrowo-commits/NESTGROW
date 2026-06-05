@@ -103,10 +103,65 @@
   transition: all 0.3s;
   cursor: pointer;
 }
-.btn-login:hover {
+.btn-login:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 0 14px 35px rgba(108,99,255,0.45);
   color: white;
+}
+.btn-login:disabled {
+  background: linear-gradient(135deg, #c5c0e8, #d6d3f0);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ── Checkbox T&C ── */
+.terminos-wrap {
+  background: #f8f7ff;
+  border: 2px solid #e8e4ff;
+  border-radius: 14px;
+  padding: 12px 16px;
+  transition: border-color 0.3s;
+}
+.terminos-wrap:has(input:checked) {
+  border-color: var(--primary);
+  background: #f0eeff;
+}
+.terminos-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #555;
+  cursor: pointer;
+  user-select: none;
+}
+.terminos-link {
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 800;
+}
+/* ── Modal T&C ── */
+.modal-tc .modal-header {
+  background: linear-gradient(135deg, var(--primary), #9c94ff);
+  color: white;
+  border-radius: 20px 20px 0 0;
+}
+.modal-tc .modal-content {
+  border-radius: 20px;
+  border: none;
+}
+.modal-tc .tc-section-title {
+  font-family: 'Fredoka One', cursive;
+  color: var(--primary);
+  font-size: 1.1rem;
+  margin-top: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+.modal-tc .modal-body {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 /* ── Roles ── */
@@ -414,7 +469,27 @@
 
             </div>
 
-            <button type="submit" class="btn-login mt-4">
+            <!-- Términos y Condiciones -->
+            <div class="terminos-wrap mt-3 d-flex align-items-center gap-2">
+              <input type="checkbox" name="terminos" id="id_terminos"
+                     class="form-check-input m-0 flex-shrink-0"
+                     style="width:20px;height:20px;border:2px solid #c5c0e8;border-radius:6px;cursor:pointer"
+                     {% if form.terminos.value %}checked{% endif %}>
+              <label class="terminos-label mb-0" for="id_terminos">
+                He leído y acepto los
+                <span class="terminos-link" onclick="document.getElementById('modalTerminos').style.display='flex'">
+                  Términos y Condiciones
+                </span>
+                de NestGrow.
+              </label>
+            </div>
+            {% if form.terminos.errors %}
+            <div style="color:#c0392b;font-size:0.82rem;font-weight:700;margin-top:6px">
+              <i class="bi bi-exclamation-circle me-1"></i>{{ form.terminos.errors.0 }}
+            </div>
+            {% endif %}
+
+            <button type="submit" id="btn-submit" class="btn-login mt-4" disabled>
               <i class="bi bi-star-fill me-2"></i> Create my account
             </button>
           </form>
@@ -533,6 +608,40 @@
     document.querySelectorAll('input[name="role"]').forEach(r => {
       r.addEventListener('change', toggleGrado);
     });
+
+    // ── Habilitar/deshabilitar botón de registro ──
+    const btnSubmit   = document.getElementById('btn-submit');
+    const inpFirst    = document.querySelector('[name="first_name"]');
+    const inpLast     = document.querySelector('[name="last_name"]');
+    const inpUser     = document.querySelector('[name="username"]');
+    const inpPwd1     = document.querySelector('[name="password1"]');
+    const inpPwd2     = document.querySelector('[name="password2"]');
+    const chkTerminos = document.getElementById('id_terminos');
+    const selGrado    = document.querySelector('[name="grado"]');
+
+    function validarFormulario() {
+      const esEstudiante = document.getElementById('radio-estudiante')?.checked;
+      const gradoOk = !esEstudiante || (selGrado && selGrado.value !== '');
+      const ok =
+        inpFirst?.value.trim()  &&
+        inpLast?.value.trim()   &&
+        inpUser?.value.trim()   &&
+        inpPwd1?.value          &&
+        inpPwd2?.value          &&
+        chkTerminos?.checked    &&
+        gradoOk;
+      btnSubmit.disabled = !ok;
+    }
+
+    [inpFirst, inpLast, inpUser, inpPwd1, inpPwd2].forEach(el => {
+      el?.addEventListener('input', validarFormulario);
+    });
+    chkTerminos?.addEventListener('change', validarFormulario);
+    selGrado?.addEventListener('change', validarFormulario);
+    document.querySelectorAll('input[name="role"]').forEach(r => {
+      r.addEventListener('change', validarFormulario);
+    });
+    validarFormulario();
   });
 
   /* ── Transición de círculos al registrarse ── */
@@ -544,6 +653,138 @@
       if (user && pwd) sessionStorage.setItem('ngCircles', '1');
     });
   }
+
+  /* ── Modal Términos y Condiciones ── */
+  function abrirTerminos(e) {
+    e && e.preventDefault();
+    document.getElementById('modalTerminos').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function cerrarTerminos() {
+    document.getElementById('modalTerminos').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  document.getElementById('modalTerminos')?.addEventListener('click', function(e) {
+    if (e.target === this) cerrarTerminos();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') cerrarTerminos();
+  });
+  function aceptarTerminos() {
+    document.getElementById('id_terminos').checked = true;
+    document.getElementById('id_terminos').dispatchEvent(new Event('change'));
+    cerrarTerminos();
+  }
 </script>
+
+<!-- ══════════════════════════════════════════════ -->
+<!--   MODAL TÉRMINOS Y CONDICIONES               -->
+<!-- ══════════════════════════════════════════════ -->
+<div id="modalTerminos"
+     style="display:none;position:fixed;inset:0;z-index:9999;
+            background:rgba(30,20,80,0.45);backdrop-filter:blur(4px);
+            align-items:center;justify-content:center;padding:1rem">
+  <div style="background:white;border-radius:20px;
+              max-width:600px;width:100%;
+              box-shadow:0 30px 80px rgba(108,99,255,0.3);
+              overflow:hidden;max-height:92vh;display:flex;flex-direction:column">
+
+    <!-- Cabecera -->
+    <div style="background:linear-gradient(135deg,var(--primary),#9c94ff);
+                padding:1.2rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:10px">
+        <i class="bi bi-shield-check-fill" style="color:white;font-size:1.4rem"></i>
+        <span style="font-family:'Fredoka One',cursive;font-size:1.3rem;color:white">
+          Términos y Condiciones
+        </span>
+      </div>
+      <button onclick="cerrarTerminos()"
+              style="background:rgba(255,255,255,0.2);border:none;border-radius:50%;
+                     width:34px;height:34px;color:white;font-size:1.1rem;
+                     display:flex;align-items:center;justify-content:center;cursor:pointer;
+                     transition:background 0.2s"
+              onmouseover="this.style.background='rgba(255,255,255,0.35)'"
+              onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Cuerpo -->
+    <div style="padding:1.4rem 1.6rem;overflow-y:auto;flex:1;font-size:0.9rem;line-height:1.7;color:#444">
+
+      <p style="background:#f0eeff;border-radius:12px;padding:10px 14px;
+                font-weight:700;font-size:0.85rem;color:var(--primary);margin-bottom:1rem">
+        <i class="bi bi-info-circle me-1"></i>
+        Última actualización: junio de 2025 &nbsp;·&nbsp; NestGrow es una plataforma educativa para el aprendizaje del inglés.
+      </p>
+
+      <p style="font-family:'Fredoka One',cursive;color:var(--primary);font-size:1.05rem;margin-top:0;margin-bottom:0.3rem">
+        1. Aceptación de los términos
+      </p>
+      <p>Al crear una cuenta en NestGrow, aceptas cumplir estos Términos y Condiciones, nuestra Política de Privacidad y cualquier guía adicional publicada en la plataforma. Si eres menor de 13 años, necesitas autorización de tu padre, madre o acudiente.</p>
+
+      <p style="font-family:'Fredoka One',cursive;color:var(--primary);font-size:1.05rem;margin-bottom:0.3rem">
+        2. Uso de la plataforma
+      </p>
+      <p>NestGrow está diseñado exclusivamente para fines educativos. Cada usuario se compromete a:</p>
+      <ul style="padding-left:1.2rem">
+        <li>Usar la plataforma de manera respetuosa hacia otros usuarios.</li>
+        <li>No compartir su contraseña ni permitir acceso no autorizado a su cuenta.</li>
+        <li>No publicar contenido ofensivo, inapropiado o que viole derechos de terceros.</li>
+        <li>No intentar vulnerar la seguridad o el correcto funcionamiento del sistema.</li>
+      </ul>
+
+      <p style="font-family:'Fredoka One',cursive;color:var(--primary);font-size:1.05rem;margin-bottom:0.3rem">
+        3. Roles y responsabilidades
+      </p>
+      <p><strong>Profesores:</strong> son responsables de los salones que crean, del contenido que asignan y del bienestar digital de sus estudiantes dentro de la plataforma.</p>
+      <p><strong>Estudiantes:</strong> deben participar de buena fe en las actividades propuestas y respetar las instrucciones de sus docentes.</p>
+
+      <p style="font-family:'Fredoka One',cursive;color:var(--primary);font-size:1.05rem;margin-bottom:0.3rem">
+        4. Privacidad y datos personales
+      </p>
+      <p>NestGrow recopila únicamente la información necesaria para brindar el servicio educativo (nombre de usuario, nombre, grado y contraseña encriptada). No vendemos ni compartimos datos personales con terceros. Los datos se almacenan de forma segura y se usan exclusivamente para mejorar la experiencia de aprendizaje.</p>
+
+      <p style="font-family:'Fredoka One',cursive;color:var(--primary);font-size:1.05rem;margin-bottom:0.3rem">
+        5. Propiedad intelectual
+      </p>
+      <p>Todo el contenido de NestGrow (textos, imágenes, personajes, minijuegos y diseños) es propiedad de sus creadores. Queda prohibida su reproducción o distribución sin autorización expresa.</p>
+
+      <p style="font-family:'Fredoka One',cursive;color:var(--primary);font-size:1.05rem;margin-bottom:0.3rem">
+        6. Modificaciones
+      </p>
+      <p>NestGrow se reserva el derecho de actualizar estos términos. Los cambios se notificarán dentro de la plataforma. El uso continuado de la aplicación implica la aceptación de los nuevos términos.</p>
+
+      <p style="font-family:'Fredoka One',cursive;color:var(--primary);font-size:1.05rem;margin-bottom:0.3rem">
+        7. Contacto
+      </p>
+      <p style="margin-bottom:0">Para cualquier consulta sobre estos términos, puedes escribirnos a través de los canales de soporte disponibles en la plataforma.</p>
+
+    </div>
+
+    <!-- Pie -->
+    <div style="padding:1rem 1.6rem;border-top:2px solid #f0eeff;flex-shrink:0;
+                display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="cerrarTerminos()"
+              style="background:white;border:2px solid #e8e4ff;border-radius:50px;
+                     padding:10px 22px;font-weight:700;font-size:0.9rem;
+                     color:#888;cursor:pointer;transition:all 0.2s"
+              onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'"
+              onmouseout="this.style.borderColor='#e8e4ff';this.style.color='#888'">
+        Cerrar
+      </button>
+      <button onclick="aceptarTerminos()"
+              style="background:linear-gradient(135deg,var(--primary),#9c94ff);
+                     border:none;border-radius:50px;padding:10px 26px;
+                     font-family:'Fredoka One',cursive;font-size:1rem;
+                     color:white;cursor:pointer;
+                     box-shadow:0 6px 20px rgba(108,99,255,0.3);transition:transform 0.2s"
+              onmouseover="this.style.transform='translateY(-2px)'"
+              onmouseout="this.style.transform=''">
+        <i class="bi bi-check-circle-fill me-1"></i> Acepto los términos
+      </button>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

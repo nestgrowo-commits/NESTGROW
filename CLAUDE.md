@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Repositorio
+
+GitHub: `https://github.com/nestgrowo-commits/NESTGROW.git` (cuenta `nestgrowo-commits`)
+
 ## Common Commands
 
 ```bash
@@ -28,38 +32,67 @@ python manage.py runserver  # http://127.0.0.1:8000/
 # Tests
 python manage.py test
 python manage.py test apps.games
+
+# Sincronización local → Railway PostgreSQL (requiere DATABASE_RAILWAY_URL en .env)
+python manage.py push_railway           # todas las apps
+python manage.py push_railway --app games  # solo una app
+python manage.py pull_railway           # Railway → local
 ```
 
 ## Architecture Overview
 
 **Project layout:** `config/` holds settings and root URLs; `apps/` holds all Django apps; `manage.py` is at the root.
 
-**Settings:** `config/settings/base.py` (shared) + `config/settings/development.py` (SQLite, DEBUG=True).
+**Settings:** `config/settings/base.py` (shared) + `config/settings/development.py` (SQLite o PostgreSQL vía DATABASE_URL, DEBUG=True).
 `config/settings/__init__.py` imports from development by default.
-Environment variables loaded from `.env` via `django-environ`. External API keys: `GEMINI_API_KEY`, `GROQ_API_KEY`, `MYMEMORY_API_KEY`.
+Production uses `config/settings/production.py` — activated in Railway via `DJANGO_SETTINGS_MODULE=config.settings.production`.
+Environment variables loaded from `.env` via `django-environ`.
+
+**External API keys:**
+- `GEMINI_API_KEY` — Gemini 2.0 Flash (IA principal)
+- `GROQ_API_KEY` — Groq / Llama 3.3 70B (fallback de IA)
+- `MYMEMORY_API_KEY` — traducción automática
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` — media en producción
+- `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` — SMTP Gmail
+- `DATABASE_URL` — PostgreSQL en Railway (producción) o SQLite (dev sin esta var)
+- `SECRET_KEY`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` — producción
 
 **Apps:**
-- `accounts` — custom user model with profesor/estudiante roles, profiles, salones (classrooms)
-- `content` — bilingual (ES/EN) vocabulary categories and items with images/audio
-- `games` — all minigame logic: scoring, achievements, store (tienda), virtual room (habitación), artwork gallery (museo)
-- `talleres` — professor-created workshops + Períodos system for activity management
-- `historia` — story mode with unlockable sections, lessons, and per-activity progress tracking
-- `core` — abstract base models, context processors, static pages
+- `accounts` — custom user model con roles profesor/estudiante, profiles, salones (classrooms)
+- `content` — vocabulario bilingüe (ES/EN), categorías e ítems con imágenes/audio
+- `games` — minijuegos: scoring, logros, tienda, habitación virtual, museo
+- `talleres` — talleres creados por profesor + sistema de Períodos
+- `historia` — modo historia: secciones, lecciones, progreso por actividad
+- `asistente` — asistente IA Milo para profesores (chat de planeación, análisis, generador de talleres)
+- `core` — modelos base abstractos, context processors, páginas estáticas, sync Railway
 
 **URL prefixes:**
 ```
-/accounts/   → auth, dashboards, profiles, salones
-/contenido/  → vocabulary categories
-/juegos/     → minigames catalog, ranking, tienda, habitacion, museo, logros
-/talleres/   → workshops (CRUD) + Períodos management + student "Mis Actividades" panel
-/historia/   → story mode map, lesson player, professor unlock panel
-/admin/      → Django admin
+/accounts/    → auth, dashboards, profiles, salones
+/contenido/   → categorías de vocabulario
+/juegos/      → catálogo de minijuegos, ranking, tienda, habitacion, museo, logros
+/talleres/    → talleres (CRUD) + Períodos + panel "Mis Actividades" del estudiante
+/historia/    → mapa modo historia, lección, panel de desbloqueo del profesor
+/asistente/   → chat de planeación, análisis de resultados, generador de talleres con IA
+/admin/       → Django admin
 ```
+
+## Deployment (Railway)
+
+- **Plataforma:** Railway con PostgreSQL y Cloudinary para media.
+- **Build:** `nixpacks.toml` — corre `python manage.py collectstatic --noinput` en fase build.
+- **Start:** `python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
+- **Static files:** WhiteNoise `CompressedManifestStaticFilesStorage` + `WHITENOISE_MANIFEST_STRICT = False`.
+- **Media files:** `cloudinary_storage.storage.MediaCloudinaryStorage` (producción). En desarrollo usa la carpeta `/media/` local.
+- **WebSockets:** `InMemoryChannelLayer` tanto en desarrollo como en producción (sin Redis).
+- **Cache:** `FileBasedCache` en desarrollo (`.django_cache/`, TTL 24h). `LocMemCache` en producción.
+- **Email:** SMTP Gmail en ambos entornos (`EMAIL_HOST_USER` + `EMAIL_HOST_PASSWORD`).
+- **SSL:** `SECURE_PROXY_SSL_HEADER`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` activos en producción.
 
 ## Key Patterns
 
 **Custom user model:** `accounts.CustomUser` (extends AbstractUser).
-Fields: `role` (profesor/estudiante), `huesos` (virtual currency "Milo bones"), `avatar`.
+Fields: `role` (profesor/estudiante), `huesos` (moneda virtual "huesos de Milo"), `avatar`.
 Always use `AUTH_USER_MODEL` / `get_user_model()`.
 
 **Auto-created profiles via signals** (`apps/accounts/signals.py`):
@@ -97,6 +130,11 @@ Most models inherit from one or both.
 **WebSockets (Django Channels):** `apps/core/consumers.py` — `NotificationConsumer` pushes real-time events per user via group `usuario_<pk>`.
 Events: `nivel_subido`, `huesos_ganados`, `taller_disponible`, `seccion_desbloqueada`.
 
+**Railway sync** (`apps/core/sync.py`):
+Señales `post_save` / `post_delete` replican automáticamente cambios de modelos propios a la base de datos `railway` cuando está configurada en `settings.DATABASES`.
+Apps sincronizadas: `accounts`, `content`, `games`, `talleres`, `historia`, `core`, `asistente`.
+Comandos manuales: `push_railway` (local→Railway), `pull_railway` (Railway→local).
+
 **Talleres (Workshops):**
 A `Taller` has ordered `BloqueTaller` records. Each bloque is `pregunta` or `minijuego`.
 `BloquePregunta` supports opcion_multiple / casillas / parrafo.
@@ -104,6 +142,10 @@ A `Taller` has ordered `BloqueTaller` records. Each bloque is `pregunta` or `min
 Student answers → `RespuestaEstudiante`; session state → `SesionTaller` (fields: `completada`, `revisado`, `puntos_obtenidos`, `bloque_actual`).
 Completing a taller unlocks vocabulary from `categorias_vocabulario`.
 After completion, student is redirected to `resultado_sesion` — clicking "Entendido" marks `SesionTaller.revisado = True` and the taller disappears from the panel.
+
+**Generador de talleres con IA:**
+Vista en `/asistente/` → llama a `AsistenteMilo.generar_taller()` que envía un prompt a Gemini (fallback Groq) en JSON mode y devuelve la estructura del taller lista para importar.
+El profesor puede editar el taller generado antes de guardarlo.
 
 **Períodos (Periods system) — `apps/talleres/`:**
 A `Periodo` belongs to a `Salon` and has a `fecha_fin` deadline.
@@ -131,6 +173,25 @@ Activity `datos` is a free-form JSONField (schema depends on `tipo`: introduccio
 Progress: `ProgresoLeccion` (per student × lesson, estrellas 1–3) + `RespuestaActividad`.
 Achievement logic: `apps/historia/services.py` (`verificar_logros_historia`); PKs 101–118 must match `logros_historia.json`.
 
+**Asistente IA (`apps/asistente/`):**
+Exclusivo para profesores. Modelos:
+- `MensajeChat` — historial de conversación por profesor y modo (`planeacion` / `analisis`)
+- `PromptTemplate` — system prompts editables desde el admin de Django sin redeploy (nombres: `planeacion`, `correccion`, `generar_taller`, `insights_periodo`)
+- `LlamadaIA` — registro de cada llamada real a la IA (motor, latencia, éxito, cache hit)
+
+`AsistenteMilo` service (`apps/asistente/services.py`):
+- Intenta Gemini 2.0 Flash → fallback Groq (Llama 3.3 70B)
+- Cachea respuestas (FileBasedCache dev / LocMemCache prod)
+- Métodos: `chat_planeacion`, `analizar_resultados`, `generar_taller`, `generar_insights_periodo`
+- `milo_correccion` endpoint (`/asistente/milo-correccion/`) — corrección de respuestas incorrectas para estudiantes
+
+Asistente URL routes:
+- `GET /asistente/` → `index` (panel del asistente)
+- `POST /asistente/chat/` → `chat` (chat de planeación, async)
+- `POST /asistente/analizar/` → `analizar` (análisis de resultados)
+- `POST /asistente/limpiar/` → `limpiar_historial`
+- `POST /asistente/milo-correccion/` → `milo_correccion` (usado por minijuegos del estudiante)
+
 **Tienda (Store):** `TiendaItem` — items with `precio_huesos`, `imagen`, `posicion_habitacion`, optional `juego_desbloqueado`.
 `InventarioEstudiante` tracks purchased items. Items loaded via `tienda_inicial.json` (13 items, PKs 1–13).
 Items 9–13 correspond to the 5 newer minigames (Memoria, Ordenar Letras, Quiz, Globos, Ahorcado).
@@ -142,7 +203,11 @@ Items 9–13 correspond to the 5 newer minigames (Memoria, Ordenar Letras, Quiz,
 
 **Custom password validator:** `apps/accounts/validators.ContainsNumberValidator` — enforces at least one digit.
 
-**Static/media:** WhiteNoise serves static files. Media root is `/media/`.
-Run `collectstatic` before deploying.
+**Static/media:**
+- Desarrollo: WhiteNoise sirve estáticos; media se sirve desde `/media/` local.
+- Producción: WhiteNoise `CompressedManifestStaticFilesStorage` para estáticos; Cloudinary para media.
+- Correr `collectstatic` antes de desplegar (en Railway lo hace nixpacks automáticamente).
 
 **Language/locale:** Spanish (es-co), timezone America/Bogota. All user-facing strings must be in Spanish.
+
+**`simple_history`:** desactivado (comentado en `INSTALLED_APPS` y `MIDDLEWARE`). Requiere habilitar Windows Long Paths antes de reactivar.

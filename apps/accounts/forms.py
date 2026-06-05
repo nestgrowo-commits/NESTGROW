@@ -28,6 +28,11 @@ class RegistroForm(UserCreationForm):
         label='Grado',
         widget=forms.Select(attrs={'class': 'form-select'}),
     )
+    terminos = forms.BooleanField(
+        required=True,
+        label='Acepto los Términos y Condiciones',
+        error_messages={'required': 'Debes aceptar los Términos y Condiciones para registrarte.'},
+    )
 
     class Meta:
         model = CustomUser
