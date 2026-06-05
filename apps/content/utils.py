@@ -13,8 +13,8 @@ HITOS_VOCAB = [
 
 PALABRAS_POR_MINIJUEGO  = 4   # palabras de la categoría del minijuego al completarlo por primera vez
 CATEGORIAS_POR_TALLER   = 5   # categorías aleatorias de las que se desbloquea vocab al completar un taller
-PALABRAS_MIN_POR_CAT    = 1   # mínimo de palabras desbloqueadas por categoría en taller
-PALABRAS_MAX_POR_CAT    = 3   # máximo de palabras desbloqueadas por categoría en taller
+PALABRAS_MIN_POR_CAT    = 2   # mínimo de palabras desbloqueadas por categoría en taller
+PALABRAS_MAX_POR_CAT    = 4   # máximo de palabras desbloqueadas por categoría en taller
 
 
 def desbloquear_palabras_iniciales(estudiante):
