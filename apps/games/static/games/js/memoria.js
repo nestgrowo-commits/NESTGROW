@@ -446,6 +446,7 @@
       shuffleTimer = setInterval(async () => {
         const grid = document.getElementById('memoryGrid');
         if (!grid || lightsOutActive || flipped.length || !canFlip) return;
+        if (typeof playShuffle === 'function') playShuffle();
         freezeShuffle(1150);
         await animateShuffle(grid);
       }, shuffleEveryMs);
@@ -475,6 +476,7 @@
               if (useBlackout && (shuffleCount + 1) % 3 === 0) {
                 triggerBlackoutOnce();
               }
+              if (typeof playShuffle === 'function') playShuffle();
               grid.dataset.freezeShuffle = '1';
               await animatePartialShuffle(grid, pairGoal);
               grid.dataset.freezeShuffle = '0';
@@ -495,6 +497,7 @@
     function triggerBlackoutOnce() {
       const ov = document.getElementById('memBlackout');
       if (!ov || lightsOutActive) return;
+      if (typeof playBlackout === 'function') playBlackout();
       lightsOutActive = true;
       document.querySelectorAll('.memory-card.flipped:not(.matched)').forEach((card) => {
         const inn = card.querySelector('.memory-inner');
@@ -575,6 +578,7 @@
      * Los errores se resetean al encontrar un par correcto.
      */
     function handleWrongPair() {
+      if (typeof playWrong === 'function') playWrong();
       wrongStreak++;
       if (wrongStreak >= 3) {
         wrongStreak = 0;
@@ -609,6 +613,7 @@
         setTimeout(() => el.classList.remove('memory-wrong-tier'), 650);
         return;
       }
+      if (typeof playFlip === 'function') playFlip();
       inner.classList.add('flipped');
       el.classList.add('flipped');
       flipped.push(el);
@@ -619,6 +624,7 @@
         const tierOk = pairAllowedForPhase(a.dataset.pairId) && pairAllowedForPhase(b.dataset.pairId);
 
         if (samePair && tierOk) {
+          if (typeof playMatch === 'function') playMatch();
           a.classList.add('matched');
           b.classList.add('matched');
           // Overlay verde + chulito, luego desaparece

@@ -15,9 +15,9 @@ def fc(placeholder='', extra=None):
 
 class RegistroForm(UserCreationForm):
     first_name = forms.CharField(max_length=50, required=True, label='Nombre',
-                                  widget=forms.TextInput(attrs=fc('Tu nombre')))
+                                  widget=forms.TextInput(attrs=fc('Your first name')))
     last_name = forms.CharField(max_length=50, required=True, label='Apellido',
-                                 widget=forms.TextInput(attrs=fc('Tu apellido')))
+                                 widget=forms.TextInput(attrs=fc('Your last name')))
     role = forms.ChoiceField(
         choices=[('profesor', '👩‍🏫 Soy Profesor'), ('estudiante', '🎒 Soy Estudiante')],
         label='¿Quién eres?', widget=forms.RadioSelect
@@ -46,8 +46,11 @@ class RegistroForm(UserCreationForm):
         self.fields['username'].label = 'Nombre de usuario'
         self.fields['password1'].label = 'Contraseña'
         self.fields['password2'].label = 'Confirmar contraseña'
+        self.fields['username'].widget.attrs.setdefault('placeholder', 'Your username')
         self.fields['password1'].widget.attrs['autocomplete'] = 'new-password'
+        self.fields['password1'].widget.attrs.setdefault('placeholder', 'Create a password')
         self.fields['password2'].widget.attrs['autocomplete'] = 'new-password'
+        self.fields['password2'].widget.attrs.setdefault('placeholder', 'Confirm your password')
         self.fields['password1'].help_text = (
             'Mínimo 8 caracteres, al menos un número. '
             'Evita contraseñas comunes como "12345678" o "password1".'
@@ -65,7 +68,7 @@ class RegistroForm(UserCreationForm):
 class LoginForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['username'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Tu usuario', 'autocomplete': 'username'})
+        self.fields['username'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Your username', 'autocomplete': 'username'})
         self.fields['password'].widget.attrs.update({'class': 'form-control', 'placeholder': '••••••••', 'autocomplete': 'current-password'})
 
 

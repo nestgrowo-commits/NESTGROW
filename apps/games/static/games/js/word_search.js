@@ -328,6 +328,7 @@ function initWordSearch(vocabulary, gameId, timeLimit, pointsReward, difficulty,
       foundCountEl.textContent = foundWords.size;
       if (scoreDisplay) scoreDisplay.textContent = score;
       showScoreToast(ptsPerAction, true);
+      if (typeof playWordFound === 'function') playWordFound();
       showGhostImage(match.word);
 
       if ('speechSynthesis' in window) {

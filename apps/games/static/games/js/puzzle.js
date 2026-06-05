@@ -170,8 +170,10 @@ function initPuzzle(vocabulary, gameId, timeLimit, pointsReward, difficulty, pen
     if (pieceCorrect === cellIndex) {
       cell.classList.add('correct');
       correctCount++;
+      if (typeof playPieceSnap === 'function') playPieceSnap();
     } else {
       cell.classList.remove('correct');
+      if (typeof playPieceMiss === 'function') playPieceMiss();
       totalScore = Math.max(0, totalScore - PUZZLE_PENALTY);
       showScoreToast(PUZZLE_PENALTY, false);
       const sd = document.getElementById('scoreDisplay');
@@ -196,6 +198,7 @@ function initPuzzle(vocabulary, gameId, timeLimit, pointsReward, difficulty, pen
 
   // ── Completó una imagen ──────────────────────────────────────
   function celebrateImage() {
+    if (typeof playPuzzleComplete === 'function') playPuzzleComplete();
     totalScore += ptsPerAction;
     showScoreToast(ptsPerAction, true);
     const sd = document.getElementById('scoreDisplay');

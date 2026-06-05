@@ -266,6 +266,7 @@
 
 {% block extra_js %}
 <script src="{% static 'games/js/score_utils.js' %}"></script>
+<script src="{% static 'games/js/sound_utils.js' %}"></script>
 <script>
 // ── Constantes ────────────────────────────────────────────────────────────────
 const VOCABULARY     = {{ vocabulary_json|safe }}.filter(v => v.word_en);
@@ -409,9 +410,11 @@ function guess(letter) {
 
   if (currentWord.includes(letter)) {
     guessed.add(letter);
+    if (typeof playLetterReveal === 'function') playLetterReveal();
     renderWord();
     renderKeyboard();
     if (currentWord.split('').every(l => guessed.has(l))) {
+      if (typeof playWordComplete === 'function') playWordComplete();
       score += PTS_PER_WORD;
       syncScore();
       showScoreToast(PTS_PER_WORD, true);
@@ -419,6 +422,7 @@ function guess(letter) {
       setTimeout(startWord, 900);
     }
   } else {
+    if (typeof playWrong === 'function') playWrong();
     wrong.push(letter);
     lives = Math.max(0, lives - 1);
     score = Math.max(0, score - PENALTY_AMOUNT);

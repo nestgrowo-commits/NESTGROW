@@ -377,6 +377,7 @@ function initConnectGame(vocabulary, gameId, timeLimit, pointsReward, penaltyAmo
       } else {
         dot.remove();
         spawnBurst(p2.x, p2.y, color);
+        if (typeof playConnect === 'function') playConnect();
       }
     })(t0);
   }
@@ -469,6 +470,7 @@ function initConnectGame(vocabulary, gameId, timeLimit, pointsReward, penaltyAmo
         if (isCorrect) {
           rawScore += ptsPerPair;
           streak++;
+          if (typeof playCorrect === 'function') playCorrect();
 
           emojiEl.classList.add('connect-node--correct');
           if (wordNode) wordNode.classList.add('connect-node--correct');
@@ -495,6 +497,7 @@ function initConnectGame(vocabulary, gameId, timeLimit, pointsReward, penaltyAmo
           }
         } else {
           streak = 0;
+          if (typeof playWrong === 'function') playWrong();
           if (cfg.penalizeWrong) rawScore -= cfg.wrongPenaltyPts;
 
           emojiEl.classList.add('connect-node--wrong');
@@ -526,6 +529,7 @@ function initConnectGame(vocabulary, gameId, timeLimit, pointsReward, penaltyAmo
   // ── Combo toast ──────────────────────────────────────────
   function triggerCombo(streak) {
     if (!comboBadge || !comboCountEl) return;
+    if (typeof playCombo === 'function') playCombo();
     comboBadge.style.display = 'block';
     comboCountEl.textContent = streak;
     comboBadge.classList.remove('connect-combo-pop');

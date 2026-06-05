@@ -601,6 +601,7 @@ function initComparacion(opts) {
 
     if (isCorrect) {
       busy = true;
+      if (typeof playCorrect === 'function') playCorrect();
       cardEl.classList.add('comp-card--correct');
       score += ptsPerQ;
       correctCount++;
@@ -609,6 +610,7 @@ function initComparacion(opts) {
       setTimeout(() => { currentQ++; showQuestion(); }, 950);
 
     } else {
+      if (typeof playWrong === 'function') playWrong();
       cardEl.classList.add('comp-card--wrong', 'comp-card--disabled');
       score = Math.max(0, score - PENALTY_AMOUNT);
       document.getElementById('scoreDisplay').textContent = score;

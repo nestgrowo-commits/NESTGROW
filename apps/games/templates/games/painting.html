@@ -144,6 +144,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'games/js/sound_utils.js' %}"></script>
 <script>
 const words = {{ painting_words_json|safe }};
 let currentIndex = 0;
@@ -287,6 +288,7 @@ function saveAndNext() {
   .then(r => r.json())
   .then(data => {
     if (data.status === 'ok') {
+      if (typeof playPuzzleComplete === 'function') playPuzzleComplete();
       document.getElementById('savedWordMsg').textContent = `"${word}" guardada en el museo.`;
       const savedModal = new bootstrap.Modal(document.getElementById('savedModal'));
       savedModal.show();
