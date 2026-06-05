@@ -718,13 +718,18 @@ def resultados_periodo(request, pk):
         estrellas = getattr(getattr(est, 'estudiante_profile', None), 'total_estrellas_historia', 0) or 0
 
         # ── Nota final del período ─────────────────────────────────────────────
+        # Período cerrado: actividades no realizadas cuentan como 1.0
         notas_individuales = []
         for t in fila_talleres:
             if t['nota'] is not None:
                 notas_individuales.append(t['nota'])
+            elif periodo.cerrado:
+                notas_individuales.append(1.0)
         for m in fila_minijuegos:
             if m['nota'] is not None:
                 notas_individuales.append(m['nota'])
+            elif periodo.cerrado:
+                notas_individuales.append(1.0)
         if periodo.meta_historia > 0 and periodo.meta_historia:
             pct_hist = min(round((estrellas / periodo.meta_historia) * 100), 100)
             from apps.games.models import pct_to_nota as _ptn
@@ -868,8 +873,9 @@ def enviar_informe_periodo(request, pk):
 
         estrellas = getattr(profile, 'total_estrellas_historia', 0) or 0
 
-        notas_ind = [t['nota'] for t in fila_talleres if t['nota'] is not None]
-        notas_ind += [m['nota'] for m in fila_minijuegos if m['nota'] is not None]
+        # Al enviar informe: actividades no realizadas cuentan como 1.0
+        notas_ind = [t['nota'] if t['nota'] is not None else 1.0 for t in fila_talleres]
+        notas_ind += [m['nota'] if m['nota'] is not None else 1.0 for m in fila_minijuegos]
         if periodo.meta_historia and periodo.meta_historia > 0:
             pct_hist = min(round((estrellas / periodo.meta_historia) * 100), 100)
             notas_ind.append(pct_to_nota(pct_hist))
