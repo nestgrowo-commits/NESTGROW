@@ -771,12 +771,22 @@ def cerrar_periodo(request, pk):
 def _enviar_informes_bg(paquetes, periodo_titulo, periodo_pk, periodo_fecha_inicio,
                         periodo_fecha_fin, from_email):
     """Genera los PDFs y envía los correos en un hilo daemon para no bloquear Gunicorn."""
-    import threading
-    from django.core.mail import EmailMessage as DjangoEmailMessage
+    import logging
+    from django.core.mail import EmailMessage as DjangoEmailMessage, get_connection
     from django.db import connection
     from apps.accounts.utils import generar_pdf_informe_periodo
 
+    logger = logging.getLogger(__name__)
+    logger.info(f'[INFORME] Iniciando envío de {len(paquetes)} informe(s) — período {periodo_pk}')
+
+    enviados = 0
+    errores  = 0
+
     try:
+        # Abrir una sola conexión SMTP para todos los correos
+        smtp_conn = get_connection()
+        smtp_conn.open()
+
         for p in paquetes:
             try:
                 pdf_bytes = generar_pdf_informe_periodo(
@@ -796,6 +806,7 @@ def _enviar_informes_bg(paquetes, periodo_titulo, periodo_pk, periodo_fecha_inic
                 email = DjangoEmailMessage(
                     subject=subject, body=body,
                     from_email=from_email, to=[p['correo_padre']],
+                    connection=smtp_conn,
                 )
                 email.content_subtype = 'html'
                 email.attach(
@@ -803,8 +814,17 @@ def _enviar_informes_bg(paquetes, periodo_titulo, periodo_pk, periodo_fecha_inic
                     pdf_bytes, 'application/pdf',
                 )
                 email.send()
-            except Exception:
-                pass
+                logger.info(f'[INFORME] ✅ Enviado a {p["correo_padre"]} ({nombre_est})')
+                enviados += 1
+            except Exception as e:
+                logger.error(f'[INFORME] ❌ Error enviando a {p.get("correo_padre","?")} ({p.get("est_nombre","?")}): {e}', exc_info=True)
+                errores += 1
+
+        smtp_conn.close()
+        logger.info(f'[INFORME] Finalizado — enviados: {enviados}, errores: {errores}')
+
+    except Exception as e:
+        logger.error(f'[INFORME] ❌ Error abriendo conexión SMTP: {e}', exc_info=True)
     finally:
         # Liberar la conexión DB del hilo de vuelta al pool
         connection.close()
