@@ -109,17 +109,13 @@ LOGIN_REDIRECT_URL = '/accounts/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
 # ── Email Configuration ───────────────────────────────────────────────────────
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'NestGrow <nestgrow@noreply.com>'
-
-# Para producción con Gmail, reemplazar con:
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = 'NestGrow <nestgrow@noreply.com>'
+DEFAULT_FROM_EMAIL = f'NestGrow <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'NestGrow <nestgrowo@gmail.com>'
 
 # ── APIs Externas ─────────────────────────────────────────────────────────────
 GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
