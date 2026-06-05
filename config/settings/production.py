@@ -1,6 +1,6 @@
 from .base import *
 
-DEBUG = False
+DEBUG = env.bool('DJANGO_DEBUG', default=False)
 
 SECRET_KEY = env('SECRET_KEY')
 
