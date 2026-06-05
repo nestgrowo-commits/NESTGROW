@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'cloudinary',
     # Terceros
+    'anymail',
     'channels',
     'crispy_forms',
     'crispy_bootstrap5',
@@ -108,14 +109,12 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/accounts/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
-# ── Email Configuration ───────────────────────────────────────────────────────
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = f'NestGrow <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'NestGrow <nestgrowo@gmail.com>'
+# ── Email Configuration (Brevo API — Railway bloquea SMTP) ───────────────────
+EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+DEFAULT_FROM_EMAIL = 'NESTGROW <nestgrowo@gmail.com>'
+ANYMAIL = {
+    'BREVO_API_KEY': env('BREVO_API_KEY', default=''),
+}
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 LOGGING = {

@@ -17,3 +17,4 @@ cloudinary==1.41.0
 django-cloudinary-storage==0.3.0
 psycopg[binary]==3.2.13
 daphne==4.0.0
+django-anymail[brevo]==10.3
