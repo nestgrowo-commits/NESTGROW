@@ -763,14 +763,56 @@ def cerrar_periodo(request, pk):
     return redirect('talleres:resultados_periodo', pk=pk)
 
 
+def _enviar_informes_bg(paquetes, periodo_titulo, periodo_pk, periodo_fecha_inicio,
+                        periodo_fecha_fin, from_email):
+    """Genera los PDFs y envía los correos en un hilo daemon para no bloquear Gunicorn."""
+    import threading
+    from django.core.mail import EmailMessage as DjangoEmailMessage
+    from django.db import connection
+    from apps.accounts.utils import generar_pdf_informe_periodo
+
+    try:
+        for p in paquetes:
+            try:
+                pdf_bytes = generar_pdf_informe_periodo(
+                    p['profile'], p['periodo_obj'],
+                    p['fila_talleres'], p['fila_minijuegos'],
+                    p['estrellas'], nota_final=p['nota_final'],
+                )
+                nombre_est = p['est_nombre']
+                subject = f'Informe de Período "{periodo_titulo}" — {nombre_est} — NestGrow'
+                body = (
+                    f'<p>Estimado padre/madre de familia,</p>'
+                    f'<p>Adjunto encontrará el informe de resultados de <strong>{nombre_est}</strong> '
+                    f'correspondiente al período <strong>{periodo_titulo}</strong> '
+                    f'({periodo_fecha_inicio} – {periodo_fecha_fin}).</p>'
+                    f'<p>Este informe fue generado automáticamente por <strong>NestGrow</strong>.</p>'
+                )
+                email = DjangoEmailMessage(
+                    subject=subject, body=body,
+                    from_email=from_email, to=[p['correo_padre']],
+                )
+                email.content_subtype = 'html'
+                email.attach(
+                    f'informe_{p["username"]}_{periodo_pk}.pdf',
+                    pdf_bytes, 'application/pdf',
+                )
+                email.send()
+            except Exception:
+                pass
+    finally:
+        # Liberar la conexión DB del hilo de vuelta al pool
+        connection.close()
+
+
 @login_required
 @profesor_required
 def enviar_informe_periodo(request, pk):
-    """Envía un informe PDF del período a todos los padres del salón."""
-    from django.core.mail import EmailMessage as DjangoEmailMessage
+    """Envía un informe PDF del período a todos los padres del salón.
+    Los correos se envían en un hilo daemon para no bloquear el worker de Gunicorn."""
+    import threading
     from django.conf import settings as dj_settings
     from apps.accounts.models import CustomUser
-    from apps.accounts.utils import generar_pdf_informe_periodo
     from apps.games.models import pct_to_nota, pct_to_nota_minijuego
 
     salon_qs = _salon_qs(request.user)
@@ -780,7 +822,7 @@ def enviar_informe_periodo(request, pk):
         estudiante_profile__salon=periodo.salon, role='estudiante'
     ).select_related('estudiante_profile').order_by('first_name', 'last_name')
 
-    talleres_asig  = list(periodo.talleres_asignados.select_related('taller').order_by('orden'))
+    talleres_asig   = list(periodo.talleres_asignados.select_related('taller').order_by('orden'))
     minijuegos_asig = list(periodo.minijuegos_asignados.select_related('game').order_by('orden'))
 
     sesiones_all = {
@@ -797,9 +839,9 @@ def enviar_informe_periodo(request, pk):
         )
     }
 
-    enviados = 0
+    # ── Preparar paquetes de datos (sin acceso a BD en el hilo) ───────────────
+    paquetes = []
     sin_correo = 0
-    errores = 0
 
     for est in estudiantes:
         profile = getattr(est, 'estudiante_profile', None)
@@ -826,47 +868,51 @@ def enviar_informe_periodo(request, pk):
 
         estrellas = getattr(profile, 'total_estrellas_historia', 0) or 0
 
-        # Calcular nota final del período para este estudiante
         notas_ind = [t['nota'] for t in fila_talleres if t['nota'] is not None]
         notas_ind += [m['nota'] for m in fila_minijuegos if m['nota'] is not None]
-        if periodo.meta_historia > 0 and periodo.meta_historia:
+        if periodo.meta_historia and periodo.meta_historia > 0:
             pct_hist = min(round((estrellas / periodo.meta_historia) * 100), 100)
             notas_ind.append(pct_to_nota(pct_hist))
         nota_final = round(sum(notas_ind) / len(notas_ind), 1) if notas_ind else None
 
-        try:
-            pdf_bytes = generar_pdf_informe_periodo(
-                profile, periodo, fila_talleres, fila_minijuegos, estrellas,
-                nota_final=nota_final,
-            )
-            nombre_est = est.get_full_name() or est.username
-            subject = f'Informe de Período "{periodo.titulo}" — {nombre_est} — NestGrow'
-            body = (
-                f'<p>Estimado padre/madre de familia,</p>'
-                f'<p>Adjunto encontrará el informe de resultados de <strong>{nombre_est}</strong> '
-                f'correspondiente al período <strong>{periodo.titulo}</strong> '
-                f'({periodo.fecha_inicio.strftime("%d/%m/%Y")} – {periodo.fecha_fin.strftime("%d/%m/%Y")}).</p>'
-                f'<p>Este informe fue generado automáticamente por <strong>NestGrow</strong>.</p>'
-            )
-            email = DjangoEmailMessage(
-                subject=subject,
-                body=body,
-                from_email=dj_settings.DEFAULT_FROM_EMAIL,
-                to=[profile.correo_padre],
-            )
-            email.content_subtype = 'html'
-            email.attach(f'informe_{est.username}_{periodo.pk}.pdf', pdf_bytes, 'application/pdf')
-            email.send()
-            enviados += 1
-        except Exception as e:
-            errores += 1
+        paquetes.append({
+            'profile':       profile,
+            'periodo_obj':   periodo,
+            'est_nombre':    est.get_full_name() or est.username,
+            'username':      est.username,
+            'correo_padre':  profile.correo_padre,
+            'fila_talleres': fila_talleres,
+            'fila_minijuegos': fila_minijuegos,
+            'estrellas':     estrellas,
+            'nota_final':    nota_final,
+        })
 
-    if enviados:
-        messages.success(request, f'✅ Informe enviado a {enviados} padre(s) de familia.')
+    # ── Lanzar hilo daemon y devolver respuesta inmediatamente ────────────────
+    if paquetes:
+        t = threading.Thread(
+            target=_enviar_informes_bg,
+            args=(
+                paquetes,
+                periodo.titulo,
+                periodo.pk,
+                periodo.fecha_inicio.strftime('%d/%m/%Y'),
+                periodo.fecha_fin.strftime('%d/%m/%Y'),
+                dj_settings.DEFAULT_FROM_EMAIL,
+            ),
+            daemon=True,
+        )
+        t.start()
+        messages.success(
+            request,
+            f'📧 Enviando informes a {len(paquetes)} padre(s) de familia. '
+            f'Los correos llegarán en los próximos minutos.',
+        )
+
     if sin_correo:
-        messages.warning(request, f'⚠️ {sin_correo} estudiante(s) no tienen correo del padre registrado.')
-    if errores:
-        messages.error(request, f'❌ {errores} correo(s) no se pudieron enviar. Revisa la configuración de email.')
+        messages.warning(
+            request,
+            f'⚠️ {sin_correo} estudiante(s) no tienen correo del padre registrado.',
+        )
 
     return redirect('talleres:resultados_periodo', pk=pk)
 
