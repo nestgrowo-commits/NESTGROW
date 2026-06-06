@@ -94,7 +94,8 @@
              onmouseover="this.style.background='#eee9ff'"
              onmouseout="if(!this.querySelector('input').checked)this.style.background='#f8f6ff'">
         <input type="checkbox" name="opcion" value="{{ opcion.pk }}" class="form-check-input opcion-check"
-               style="width:1.3rem;height:1.3rem">
+               style="width:1.3rem;height:1.3rem"
+               onchange="if(typeof playFlip==='function') playFlip();">
         <span class="fw-bold">{{ opcion.texto }}</span>
       </label>
       {% endfor %}
@@ -216,6 +217,7 @@ const RESULTADO_SESION_BASE = "/talleres/sesion/";
 const RESOLVER_URL  = "{% url 'talleres:resolver' pk=taller.pk %}";
 
 function marcarOpcionSeleccionada(radio) {
+  if (typeof playFlip === 'function') playFlip();
   document.querySelectorAll('.opcion-item').forEach(el => {
     el.style.background = '#f8f6ff';
     el.style.border = '2px solid #e8e4ff';
