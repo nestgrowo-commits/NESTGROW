@@ -519,6 +519,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'games/js/sound_utils.js' %}"></script>
 <script>
 // ── Data from Django ──────────────────────────────────────────────────────────
 const ACTIVIDADES    = {{ actividades_json|safe }};
@@ -577,7 +578,7 @@ function renderIntroduccion(d) {
 
 function renderVocabulario(d) {
   const tarjetas = (d.tarjetas||[]).map(t => `
-    <div class="flip-card" onclick="this.classList.toggle('flipped')">
+    <div class="flip-card" onclick="this.classList.toggle('flipped'); if(typeof playFlip==='function') playFlip();">
       <div class="flip-inner">
         <div class="flip-face flip-front">
           <div class="flip-emoji">${t.emoji||'📝'}</div>
@@ -789,6 +790,7 @@ function memoClick(card) {
   const [a, b] = memoState.flipped;
 
   if (a.dataset.pair === b.dataset.pair && a !== b) {
+    if (typeof playMatch === 'function') playMatch();
     a.classList.add('matched'); b.classList.add('matched');
     memoState.matched++;
     memoState.flipped = [];
@@ -800,6 +802,7 @@ function memoClick(card) {
     }
   } else {
     setTimeout(() => {
+      if (typeof playWrong === 'function') playWrong();
       a.classList.remove('face-up'); a.querySelector('span').style.display='none';
       b.classList.remove('face-up'); b.querySelector('span').style.display='none';
       a.classList.add('unmatched'); b.classList.add('unmatched');
@@ -862,10 +865,12 @@ function vfResponder(respuesta) {
   }
 
   if (esCorrecta) {
+    if (typeof playCorrect === 'function') playCorrect();
     btnPulsado.classList.add('correcto');
     document.getElementById('vfExpl').textContent = p.explicacion || '';
     setTimeout(_vfAvanzar, 1600);
   } else {
+    if (typeof playWrong === 'function') playWrong();
     btnPulsado.classList.add('incorrecto-flash');
     (respuesta ? btnF : btnV).classList.add('correcto');
     document.getElementById('vfExpl').textContent = p.explicacion || '';
@@ -929,6 +934,8 @@ function rellenarValidar() {
       allOk = false;
     }
   });
+  if (typeof playCorrect === 'function' && allOk) playCorrect();
+  else if (typeof playWrong === 'function' && !allOk) playWrong();
   return allOk;
 }
 
@@ -976,6 +983,7 @@ function unirClick(btn) {
     if (unirState.selectedLeft === null) return;
     const izqBtn = document.getElementById(`unir-izq-${unirState.selectedLeft}`);
     if (unirState.selectedLeft === idx) {
+      if (typeof playMatch === 'function') playMatch();
       const color = unirState.colores[unirState.matchedCount % unirState.colores.length];
       izqBtn.classList.remove('selected'); izqBtn.classList.add('matched'); izqBtn.style.background = color;
       btn.classList.add('matched'); btn.style.background = color;
@@ -986,6 +994,7 @@ function unirClick(btn) {
         document.getElementById('btnContinue').disabled = false;
       }
     } else {
+      if (typeof playWrong === 'function') playWrong();
       btn.classList.add('error');
       setTimeout(() => btn.classList.remove('error'), 400);
 
@@ -1093,9 +1102,11 @@ function ordenValidar() {
   const resEl     = document.getElementById('ordenResultado');
 
   if (respuesta === correcta) {
+    if (typeof playCorrect === 'function') playCorrect();
     if (resEl) resEl.innerHTML = '<span style="color:#28a745;font-size:1.15rem">✅ Correct!</span>';
     return true;
   } else {
+    if (typeof playWrong === 'function') playWrong();
     if (resEl) resEl.innerHTML = `<span style="color:#dc3545">❌ Intenta de nuevo.</span>`;
     chips.forEach(c => { c.classList.add('error-chip'); setTimeout(() => c.classList.remove('error-chip'), 400); });
     const bank = document.getElementById('palabrasBank');
@@ -1177,8 +1188,10 @@ function clasificarValidar() {
   });
   const msg = document.getElementById('clasificarMsg');
   if (allOk) {
+    if (typeof playCorrect === 'function') playCorrect();
     if (msg) msg.textContent = '🎉 Everything in place!';
   } else {
+    if (typeof playWrong === 'function') playWrong();
     if (msg) msg.textContent = '❌ Some are not in the correct place.';
   }
   return allOk;
@@ -1455,10 +1468,12 @@ async function onContinue() {
 
     if (act.tiene_correcta && data.es_correcta !== null) {
       if (data.es_correcta) {
+        if (typeof playCorrect === 'function') playCorrect();
         await showCorrection('correct',
           `¡Correcto!${data.puntos > 0 ? ' +' + data.puntos + ' pts' : ''}`,
           '', 2000);
       } else {
+        if (typeof playWrong === 'function') playWrong();
         const actDatos = _extraerContextoActividad(act);
         await showCorrection('incorrect', 'Incorrect!', '', 0, actDatos);
       }
@@ -1532,10 +1547,12 @@ async function finalizarLeccion() {
 
     document.getElementById('finalScreen').style.display = 'flex';
 
-    // Confetti!
+    // Confetti + sonido de victoria
     if (data.estrellas >= 3) {
+      if (typeof playPuzzleComplete === 'function') setTimeout(playPuzzleComplete, 300);
       setTimeout(lanzarConfetiFuerte, 600);
     } else {
+      if (typeof playCombo === 'function') setTimeout(playCombo, 300);
       setTimeout(() => launchConfetti({ particleCount: 80 }), 600);
     }
 

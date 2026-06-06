@@ -3,7 +3,11 @@
 {% block title %}Workshop completed! — {{ taller.titulo }}{% endblock %}
 
 {% block extra_js %}
-<script>document.addEventListener('DOMContentLoaded', function(){ if(typeof launchConfetti==='function') launchConfetti(); });</script>
+<script src="{% static 'games/js/sound_utils.js' %}"></script>
+<script>document.addEventListener('DOMContentLoaded', function(){
+  if (typeof launchConfetti === 'function') launchConfetti();
+  if (typeof playPuzzleComplete === 'function') playPuzzleComplete();
+});</script>
 {% endblock %}
 
 {% block extra_css %}

@@ -207,6 +207,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'games/js/sound_utils.js' %}"></script>
 <script>
 const CSRF = "{{ csrf_token }}";
 const TALLER_PK = {{ taller.pk }};
@@ -315,11 +316,13 @@ function mostrarFeedback(esCorrecta, puntos, next, enunciado, respuestaCorrecta)
       () => _navegar(next)
     );
   } else if (esCorrecta) {
+    if (typeof playCorrect === 'function') playCorrect();
     window.miloComentarista('correcto',
       { msg: `¡Correcto! +${puntos} points 🎉` },
       () => _navegar(next)
     );
   } else {
+    if (typeof playWrong === 'function') playWrong();
     window.miloComentarista('incorrecto', {
       pregunta: enunciado,
       respuesta_correcta: respuestaCorrecta,
