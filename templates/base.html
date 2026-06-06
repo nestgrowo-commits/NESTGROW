@@ -718,6 +718,18 @@
     /* Disparador manual + flag dedicado (no interfiere con la transición default) */
     window.ngCircles = { cubrir, descubrir };
 
+    /* Fix bfcache para la transición de círculos */
+    window.addEventListener('pageshow', function (e) {
+      if (!e.persisted) return;
+      sessionStorage.removeItem('ngCircles');
+      circles.forEach(c => {
+        c.style.transition = 'none';
+        c.style.transform  = 'scale(0)';
+        c.style.opacity    = '0';
+      });
+      wrap.style.opacity = '0';
+    });
+
     if (sessionStorage.getItem('ngCircles') === '1') {
       sessionStorage.removeItem('ngCircles');
       circles.forEach(c => {
@@ -858,6 +870,17 @@
     }
 
     window.ngTransicion = { cubrir, descubrir };
+
+    /* ── Fix bfcache: al volver con "Atrás" el overlay queda congelado ─────
+       pageshow con persisted=true indica restauración desde bfcache.
+       Reseteamos el overlay instantáneamente para que no bloquee la página. */
+    window.addEventListener('pageshow', function (e) {
+      if (!e.persisted) return;
+      sessionStorage.removeItem('ngTransition');
+      clearElems();
+      wrap.style.transition = 'none';
+      wrap.style.opacity    = '0';
+    });
   })();
   </script>
 
@@ -957,6 +980,24 @@
     }
 
     window.ngStars = { explotar, implotar };
+
+    /* Fix bfcache para la transición de estrellas */
+    window.addEventListener('pageshow', function (e) {
+      if (!e.persisted) return;
+      sessionStorage.removeItem('ngStars');
+      wrap.style.transition = 'none';
+      wrap.style.opacity    = '0';
+      bg.style.transition   = 'none';
+      bg.style.opacity      = '0';
+      core.style.transition = 'none';
+      core.style.transform  = 'translate(-50%,-50%) scale(0)';
+      core.style.opacity    = '1';
+      stars.forEach(s => {
+        s.style.transition = 'none';
+        s.style.transform  = 'translate(-50%,-50%) scale(0)';
+        s.style.opacity    = '0';
+      });
+    });
 
     if (sessionStorage.getItem('ngStars') === '1') {
       sessionStorage.removeItem('ngStars');
