@@ -313,7 +313,7 @@ def generar_pdf_informe(estudiante, progreso, talleres_data):
             )
             m_rows.append([
                 p.game.title,
-                p.game.get_game_type_display(),
+                _TIPO_CORTO.get(p.game.game_type, p.game.game_type),
                 'Si' if p.attempts > 0 else 'No',
                 str(p.attempts),
                 ultimo,
@@ -376,12 +376,24 @@ def generar_pdf_informe(estudiante, progreso, talleres_data):
 
 
 def _nota_emoji(nota):
-    if nota is None:   return ''
-    if nota >= 4.5:    return '🏆'
-    if nota >= 4.0:    return '⭐'
-    if nota >= 3.5:    return '👍'
-    if nota >= 3.0:    return '📖'
-    return '💪'
+    # Emojis no son compatibles con fuentes PDF estándar (Helvetica) → cuadros negros
+    return ''
+
+
+# Nombres cortos de tipo de minijuego para columnas PDF (sin emoji)
+_TIPO_CORTO = {
+    'drag_and_drop':   'Conectar',
+    'word_search':     'Sopa Letras',
+    'puzzle':          'Rompecabezas',
+    'audio_matching':  'Audio',
+    'painting':        'Pintura',
+    'memoria':         'Memoria',
+    'ahorcado':        'Ahorcado',
+    'quiz':            'Quiz',
+    'ordenar_letras':  'Ord. Letras',
+    'globos':          'Globos',
+    'comparacion':     'Comparacion',
+}
 
 def _nota_label(nota):
     if nota is None:   return 'Sin datos'
@@ -433,7 +445,7 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             leftMargin=1.8*cm, rightMargin=1.8*cm,
-                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+                            topMargin=1.2*cm, bottomMargin=1.2*cm)
 
     styles  = getSampleStyleSheet()
     primary = colors.HexColor('#6C63FF')
@@ -454,7 +466,7 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
                                    spaceAfter=0, alignment=TA_CENTER)
     section_style = ParagraphStyle('Sec', parent=styles['Heading2'],
                                    textColor=primary, fontSize=12,
-                                   spaceBefore=12, spaceAfter=4, fontName='Helvetica-Bold')
+                                   spaceBefore=6, spaceAfter=3, fontName='Helvetica-Bold')
     sub_style     = ParagraphStyle('Sub', parent=styles['Normal'], fontSize=9,
                                    textColor=colors.HexColor('#666666'), spaceAfter=5)
     body_style    = ParagraphStyle('B',   parent=styles['Normal'], fontSize=10, spaceAfter=3)
@@ -505,7 +517,7 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
         ('RIGHTPADDING',  (1, 0), (1, 0),  6),
         ('ROUNDEDCORNERS', [8, 8, 8, 8]),
     ]))
-    story += [header_table, Spacer(1, 10)]
+    story += [header_table, Spacer(1, 6)]
 
     # ── 2. Info + Nota Final + Milo de calificación ───────────────────────────
     INFO_W = W - 0.3*cm - 4.5*cm - 0.3*cm - 3.2*cm  # = 9.1 cm
@@ -589,7 +601,7 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING',(0, 0), (-1, -1), 0),
     ]))
-    story += [combined, Spacer(1, 12)]
+    story += [combined, Spacer(1, 6)]
 
     # ── 3. Resumen de actividad (3 chips de colores) ──────────────────────────
     t_completados = sum(1 for t in fila_talleres  if t['nota'] is not None)
@@ -628,7 +640,7 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('ROUNDEDCORNERS', [6, 6, 6, 6]),
         ]))
-        story += [summary_table, Spacer(1, 10)]
+        story += [summary_table, Spacer(1, 5)]
 
     # ── 4. Talleres ───────────────────────────────────────────────────────────
     if fila_talleres:
@@ -667,8 +679,8 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
             ('ALIGN',         (4, 0), (4, -1), 'CENTER'),
             ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
             ('GRID',          (0, 0), (-1, -1), 0.4, colors.HexColor('#E0DCFF')),
-            ('TOPPADDING',    (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING',    (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
             ('LEFTPADDING',   (0, 0), (0, -1), 8),
             ('LEFTPADDING',   (3, 1), (3, -1), 4),
         ]
@@ -681,7 +693,7 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
                 ('FONTNAME',   (1, i), (2, i), 'Helvetica-Bold'),
             ]
         t_table.setStyle(TableStyle(t_style))
-        story += [t_table, Spacer(1, 8)]
+        story += [t_table, Spacer(1, 5)]
 
     # ── 5. Minijuegos ─────────────────────────────────────────────────────────
     if fila_minijuegos:
@@ -693,9 +705,8 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
         ))
         m_data = [['Juego', 'Tipo', 'Nota', 'Desempeno', 'Progreso']]
         for m in fila_minijuegos:
-            tipo_str = (m['asig'].game.get_game_type_display()
-                        if hasattr(m['asig'].game, 'get_game_type_display')
-                        else m['asig'].game.game_type)
+            # Usar nombre corto sin emoji (emojis = cuadros negros en ReportLab)
+            tipo_str = _TIPO_CORTO.get(m['asig'].game.game_type, m['asig'].game.game_type)
             if m['nota'] is not None:
                 nota_str  = str(m['nota'])
                 label_str = _nota_label(m['nota'])
@@ -717,8 +728,8 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
             ('ALIGN',         (2, 0), (3, -1), 'CENTER'),
             ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
             ('GRID',          (0, 0), (-1, -1), 0.4, colors.HexColor('#C8F4F1')),
-            ('TOPPADDING',    (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING',    (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
             ('LEFTPADDING',   (0, 0), (0, -1), 8),
             ('LEFTPADDING',   (4, 1), (4, -1), 4),
         ]
@@ -732,7 +743,7 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
                 ('FONTNAME',   (2, i), (3, i), 'Helvetica-Bold'),
             ]
         m_table.setStyle(TableStyle(m_style))
-        story += [m_table, Spacer(1, 8)]
+        story += [m_table, Spacer(1, 5)]
 
     # ── 6. Modo Historia con Milo estrella ────────────────────────────────────
     if periodo.meta_historia > 0:
@@ -744,7 +755,7 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
         hist_bg    = colors.HexColor('#d4edda') if alcanzado else colors.HexColor('#fff3cd')
         bar_hist   = _barra_progreso(pct_hist, bar_width=100, bar_height=8)
 
-        milo_star = _milo_img('milo_star.png', ancho=2.8*cm, alto=3.0*cm)
+        milo_star = _milo_img('milo_emociontotal.png', ancho=2.8*cm, alto=3.0*cm)
 
         # 4.5 + 3.8 + 6.3 + 2.8 = 17.4 cm
         hist_table = Table([[
@@ -773,12 +784,12 @@ def generar_pdf_informe_periodo(estudiante, periodo, fila_talleres, fila_minijue
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('LEFTPADDING',   (0, 0), (2, 0),  8),
         ]))
-        story += [hist_table, Spacer(1, 8)]
+        story += [hist_table, Spacer(1, 5)]
 
     # ── 7. Footer con Milo saludando ──────────────────────────────────────────
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 5))
     story.append(HRFlowable(width='100%', thickness=1, color=colors.HexColor('#E0DCFF')))
-    story.append(Spacer(1, 6))
+    story.append(Spacer(1, 3))
 
     milo_footer = _milo_img('milo_saludando.png', ancho=1.8*cm, alto=2.2*cm)
     footer_table = Table([[
