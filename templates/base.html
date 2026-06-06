@@ -224,6 +224,9 @@
   </div>
   {% endif %}
 
+  <!-- Flash overlay de feedback visual (correcto / incorrecto) -->
+  <div id="milo-flash" aria-hidden="true"><span id="milo-flash-icon"></span></div>
+
   <!-- Messages -->
   {% if messages %}
   <div class="messages-container">
@@ -452,7 +455,7 @@
     function closeBubble() {
       clearTimeout(autoCloseTimer);
       comentaristaActivo = false;
-      bubble.classList.remove('show');
+      bubble.classList.remove('show', 'milo-bubble--correct', 'milo-bubble--incorrect');
       isOpen = false;
       setImg(IMG.idle);
     }
@@ -538,6 +541,32 @@
     const _miloDelay = sessionStorage.getItem('ngTransition') === '1' ? 1800 : 900;
     setTimeout(openBubble, _miloDelay);
 
+    // ── Flash overlay de feedback visual ─────────────────────────────────────
+    function triggerMiloFlash(tipo) {
+      const el   = document.getElementById('milo-flash');
+      const icon = document.getElementById('milo-flash-icon');
+      if (!el || !icon) return;
+      el.className = '';
+      void el.offsetWidth;
+      if (tipo === 'correcto') {
+        icon.textContent = '✅';
+        el.classList.add('flash-correct');
+        if (typeof launchConfetti === 'function')
+          launchConfetti({ particleCount: 50, spread: 70, origin: { y: 0.55 } });
+      } else if (tipo === 'incorrecto') {
+        icon.textContent = '❌';
+        el.classList.add('flash-incorrect');
+      }
+    }
+
+    function _setAvatarAnim(cls) {
+      const av = document.querySelector('.milo-avatar');
+      if (!av) return;
+      av.classList.remove('milo-avatar--bounce', 'milo-avatar--shake');
+      void av.offsetWidth;
+      if (cls) av.classList.add(cls);
+    }
+
     // ── Comentarista Milo: para talleres y modo historia ─────────────────────
     window.miloComentarista = function(tipo, datos, onContinuar) {
       if (!float) { if (onContinuar) onContinuar(); return; }
@@ -547,12 +576,18 @@
       const d = datos || {};
 
       function _done(cb) {
+        bubble.classList.remove('milo-bubble--correct', 'milo-bubble--incorrect');
+        _setAvatarAnim(null);
         comentaristaActivo = false;
         if (cb) cb();
       }
 
       if (tipo === 'correcto') {
-        speech.innerHTML = d.msg || 'Excellent! Correct answer! 🎉';
+        triggerMiloFlash('correcto');
+        bubble.classList.add('milo-bubble--correct');
+        bubble.classList.remove('milo-bubble--incorrect');
+        _setAvatarAnim('milo-avatar--bounce');
+        speech.innerHTML = '<span class="milo-badge milo-badge--correct">✅ ¡Correcto!</span><br>' + (d.msg || 'Excellent! Correct answer! 🎉');
         extra.innerHTML = '';
         setImg(IMG.aplaudiendo);
         bubble.classList.add('show');
@@ -562,10 +597,14 @@
           isOpen = false;
           setImg(IMG.idle);
           _done(onContinuar);
-        }, 2000);
+        }, 2200);
 
       } else if (tipo === 'incorrecto') {
-        speech.textContent = '🔍 Reviewing your answer…';
+        triggerMiloFlash('incorrecto');
+        bubble.classList.add('milo-bubble--incorrect');
+        bubble.classList.remove('milo-bubble--correct');
+        _setAvatarAnim('milo-avatar--shake');
+        speech.innerHTML = '<span class="milo-badge milo-badge--incorrect">❌ Respuesta incorrecta</span><br>🔍 Reviewing your answer…';
         extra.innerHTML = '';
         setImg(IMG.apuntes);
         bubble.classList.add('show');
@@ -583,12 +622,12 @@
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          speech.textContent = data.correccion || 'Keep practicing! 💪';
+          speech.innerHTML = '<span class="milo-badge milo-badge--incorrect">❌ Respuesta incorrecta</span><br>' + (data.correccion || 'Keep practicing! 💪');
           setImg(IMG.leyendo);
           _mostrarBotonContinuar(function() { _done(onContinuar); });
         })
         .catch(function() {
-          speech.textContent = 'Don\'t give up! Practice makes perfect. 💪';
+          speech.innerHTML = '<span class="milo-badge milo-badge--incorrect">❌ Respuesta incorrecta</span><br>Don\'t give up! Practice makes perfect. 💪';
           setImg(IMG.pulgar);
           _mostrarBotonContinuar(function() { _done(onContinuar); });
         });
@@ -597,6 +636,7 @@
         speech.textContent = d.msg || 'Very good! ✨';
         extra.innerHTML = '';
         setImg(IMG.pulgar);
+        bubble.classList.remove('milo-bubble--correct', 'milo-bubble--incorrect');
         bubble.classList.add('show');
         isOpen = true;
         autoCloseTimer = setTimeout(function() {
