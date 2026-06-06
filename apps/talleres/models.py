@@ -11,7 +11,7 @@ class Taller(TimeStampedModel):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='talleres_creados'
     )
-    puntos_xp = models.IntegerField(default=10, verbose_name='XP al completar')
+    puntos_xp = models.IntegerField(default=10, verbose_name='XP total del taller')
     huesos_recompensa = models.IntegerField(default=5, verbose_name='Huesos al completar')
     is_active = models.BooleanField(default=False, verbose_name='Publicado')
     categorias_vocabulario = models.ManyToManyField(

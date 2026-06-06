@@ -23,6 +23,7 @@
   .resp-item { border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 0.6rem; border-left: 5px solid; }
   .resp-correcta   { background: #d4f5e0; border-left-color: #28a745; }
   .resp-incorrecta { background: #ffe5e5; border-left-color: #e53935; }
+  .resp-parcial    { background: #fff8e1; border-left-color: #f59e0b; }
   .resp-parrafo    { background: #e8f4ff; border-left-color: #1565c0; }
   .resp-dibujo     { background: #f0fdf4; border-left-color: #22c55e; }
 </style>
@@ -72,7 +73,7 @@
     <h5 class="font-fredoka mb-3" style="color:var(--primary)">📝 Answer Summary</h5>
     {% for item in resumen %}
     {% with resp=item.respuesta preg=item.pregunta %}
-    <div class="resp-item {% if preg.tipo_respuesta == 'dibujo' %}resp-dibujo{% elif preg.tipo_respuesta == 'parrafo' %}resp-parrafo{% elif resp and resp.es_correcta %}resp-correcta{% else %}resp-incorrecta{% endif %}">
+    <div class="resp-item {% if preg.tipo_respuesta == 'dibujo' %}resp-dibujo{% elif preg.tipo_respuesta == 'parrafo' %}resp-parrafo{% elif resp and resp.es_correcta %}resp-correcta{% elif resp and preg.tipo_respuesta == 'casillas' and item.puntos_ganados > 0 %}resp-parcial{% else %}resp-incorrecta{% endif %}">
       <div class="fw-bold mb-1" style="font-size:.95rem">{{ preg.enunciado }}</div>
       {% if resp %}
         {% if preg.tipo_respuesta == 'parrafo' %}
@@ -93,6 +94,11 @@
           {% empty %}
           <div class="text-muted small">No answer</div>
           {% endfor %}
+          {% if preg.tipo_respuesta == 'casillas' %}
+          <div class="small mt-1 fw-semibold">
+            {% if resp.es_correcta %}✅ Perfecto{% elif item.puntos_ganados > 0 %}⭐ Parcial: +{{ item.puntos_ganados }} pts{% else %}❌ Sin puntos{% endif %}
+          </div>
+          {% endif %}
         {% endif %}
       {% else %}
         <div class="text-muted small">No answer</div>

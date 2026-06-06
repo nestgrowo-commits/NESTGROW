@@ -31,7 +31,9 @@ def _completar_taller(sesion, taller, user):
     sesion.save(update_fields=['completada', 'completada_en', 'huesos_ganados', 'bloque_actual'])
 
     profile = user.estudiante_profile
-    profile.puntos_totales += taller.puntos_xp
+    tiene_preguntas = taller.bloques.filter(tipo='pregunta').exists()
+    xp_ganado = sesion.puntos_obtenidos if tiene_preguntas else taller.puntos_xp
+    profile.puntos_totales += xp_ganado
     subio_nivel = profile.actualizar_nivel()
 
     if taller.huesos_recompensa > 0:
@@ -105,6 +107,7 @@ def editar_taller(request, pk):
         form = TallerForm(request.POST, instance=taller)
         if form.is_valid():
             form.save()
+            recalcular_puntajes(taller)
             messages.success(request, '✅ Taller actualizado.')
             return redirect('talleres:editar', pk=taller.pk)
     else:
@@ -172,6 +175,21 @@ def preview_taller(request, pk):
 
 # ── Profesor — AJAX Bloques ───────────────────────────────────────────────────
 
+def recalcular_puntajes(taller):
+    """Distribuye taller.puntos_xp equitativamente entre todos los bloques de preguntas."""
+    bloques = list(
+        BloqueTaller.objects.filter(taller=taller, tipo='pregunta').order_by('orden')
+    )
+    n = len(bloques)
+    if n == 0:
+        return
+    base = taller.puntos_xp // n
+    remainder = taller.puntos_xp % n
+    for i, bloque in enumerate(bloques):
+        puntos = base + (1 if i < remainder else 0)
+        BloquePregunta.objects.filter(bloque=bloque).update(puntaje_parcial=puntos)
+
+
 @login_required
 @profesor_required
 @require_POST
@@ -193,14 +211,13 @@ def agregar_bloque(request, pk):
     else:  # pregunta
         enunciado = request.POST.get('enunciado', '').strip()
         tipo_respuesta = request.POST.get('tipo_respuesta', 'opcion_multiple')
-        puntaje_parcial = max(1, int(request.POST.get('puntaje_parcial', 10) or 10))
         video_url = request.POST.get('video_url', '')
 
         pregunta = BloquePregunta(
             bloque=bloque,
             enunciado=enunciado,
             tipo_respuesta=tipo_respuesta,
-            puntaje_parcial=puntaje_parcial,
+            puntaje_parcial=1,
             video_url=video_url,
         )
         if request.FILES.get('imagen'):
@@ -224,6 +241,7 @@ def agregar_bloque(request, pk):
                     )
 
         descripcion = enunciado[:60]
+        recalcular_puntajes(taller)
 
     return JsonResponse({
         'ok': True,
@@ -239,7 +257,9 @@ def agregar_bloque(request, pk):
 @require_POST
 def eliminar_bloque(request, bpk):
     bloque = get_object_or_404(BloqueTaller, pk=bpk, taller__profesor=request.user)
+    taller = bloque.taller
     bloque.delete()
+    recalcular_puntajes(taller)
     return JsonResponse({'ok': True})
 
 
@@ -493,7 +513,16 @@ def guardar_respuesta(request, pk, bpk):
         es_correcta = respuesta.es_correcta
         respuesta.save()
 
-    puntos = pregunta.puntaje_parcial if es_correcta else 0
+    if pregunta.tipo_respuesta == 'casillas' and not es_correcta:
+        n = len(correctas)
+        if n > 0:
+            hits = len(elegidas & correctas)
+            mistakes = len(elegidas - correctas)
+            puntos = max(0, round((hits - mistakes) / n * pregunta.puntaje_parcial))
+        else:
+            puntos = 0
+    else:
+        puntos = pregunta.puntaje_parcial if es_correcta else 0
     sesion.puntos_obtenidos += puntos
     sesion.bloque_actual += 1
     sesion.save()
@@ -999,10 +1028,24 @@ def resultado_sesion(request, pk):
     for b in bloques_pregunta:
         pregunta = getattr(b, 'bloque_pregunta', None)
         if pregunta:
+            resp = respuestas_map.get(pregunta.pk)
+            puntos_ganados = 0
+            if resp:
+                if resp.es_correcta:
+                    puntos_ganados = pregunta.puntaje_parcial
+                elif pregunta.tipo_respuesta == 'casillas':
+                    correctas_ids = set(pregunta.opciones.filter(es_correcta=True).values_list('pk', flat=True))
+                    elegidas_ids = set(resp.opciones_elegidas.values_list('pk', flat=True))
+                    n = len(correctas_ids)
+                    if n > 0:
+                        hits = len(elegidas_ids & correctas_ids)
+                        mistakes = len(elegidas_ids - correctas_ids)
+                        puntos_ganados = max(0, round((hits - mistakes) / n * pregunta.puntaje_parcial))
             resumen.append({
                 'bloque': b,
                 'pregunta': pregunta,
-                'respuesta': respuestas_map.get(pregunta.pk),
+                'respuesta': resp,
+                'puntos_ganados': puntos_ganados,
             })
 
     return render(request, 'talleres/estudiante/resultado_sesion.html', {
@@ -1199,7 +1242,7 @@ def aplicar_taller_ia(request):
                     bloque=bloque,
                     enunciado=bloque_data.get('enunciado', 'Actividad de juego'),
                     tipo_respuesta='parrafo',
-                    puntaje_parcial=10,
+                    puntaje_parcial=1,
                 )
 
         else:  # pregunta
@@ -1207,13 +1250,12 @@ def aplicar_taller_ia(request):
             tipo_respuesta = bloque_data.get('tipo_respuesta', 'opcion_multiple')
             if tipo_respuesta not in ('opcion_multiple', 'casillas', 'parrafo', 'dibujo'):
                 tipo_respuesta = 'opcion_multiple'
-            puntaje_parcial = max(1, int(bloque_data.get('puntaje_parcial', 10) or 10))
 
             pregunta = BloquePregunta.objects.create(
                 bloque=bloque,
                 enunciado=enunciado,
                 tipo_respuesta=tipo_respuesta,
-                puntaje_parcial=puntaje_parcial,
+                puntaje_parcial=1,
             )
 
             opciones_raw = bloque_data.get('opciones', [])
@@ -1237,6 +1279,7 @@ def aplicar_taller_ia(request):
                     'nota_imagen': (bloque_data.get('nota_imagen') or '').strip()[:150],
                 })
 
+    recalcular_puntajes(taller)
     return JsonResponse({
         'ok': True,
         'taller_pk': taller.pk,

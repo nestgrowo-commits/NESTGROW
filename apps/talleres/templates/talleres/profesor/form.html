@@ -146,6 +146,7 @@
         <div class="col-md-3">
           <label class="form-label fw-bold">{{ form.puntos_xp.label }}</label>
           {{ form.puntos_xp }}
+          <small class="text-muted d-block mt-1">Se reparte automáticamente entre las preguntas. <span id="xp-hint" class="fw-semibold"></span></small>
         </div>
         <div class="col-md-3">
           <label class="form-label fw-bold">{{ form.huesos_recompensa.label }}</label>
@@ -200,6 +201,7 @@
         {% for bloque in bloques %}
         <div class="d-flex align-items-center gap-3 p-3 rounded-3 bloque-item"
              data-id="{{ bloque.pk }}"
+             data-tipo="{{ bloque.tipo }}"
              style="background:{% if bloque.tipo == 'pregunta' %}#f0eeff{% else %}#fff5f5{% endif %};
                     border:2px solid {% if bloque.tipo == 'pregunta' %}#d8d0ff{% else %}#ffd0d0{% endif %}">
           <span class="drag-handle text-muted" style="cursor:grab;font-size:1.3rem;user-select:none">⠿</span>
@@ -217,7 +219,6 @@
                 <div class="fw-bold">{{ bloque.bloque_pregunta.enunciado|truncatechars:70 }}</div>
                 <div class="text-muted small">
                   {{ bloque.bloque_pregunta.get_tipo_respuesta_display }} ·
-                  {{ bloque.bloque_pregunta.puntaje_parcial }} pts ·
                   {{ bloque.bloque_pregunta.opciones.count }} opciones
                 </div>
               {% endif %}
@@ -256,7 +257,7 @@
             <textarea id="p-enunciado" class="form-control" rows="3"
                       placeholder="Escribe la pregunta aquí..."></textarea>
           </div>
-          <div class="col-md-5">
+          <div class="col-md-6">
             <label class="form-label fw-bold">Tipo de respuesta</label>
             <select id="p-tipo" class="form-select" onchange="actualizarSeccionOpciones()">
               <option value="opcion_multiple">⭕ Opción múltiple (una correcta)</option>
@@ -265,11 +266,7 @@
               <option value="dibujo">🎨 Dibujo en canvas</option>
             </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Puntos de la pregunta</label>
-            <input id="p-puntaje" type="number" class="form-control" value="10" min="1" max="100">
-          </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="form-label fw-bold">Video opcional (.mp4)</label>
             <input id="p-video-archivo" type="file" class="form-control" accept="video/mp4,video/*">
           </div>
@@ -291,7 +288,7 @@
           <div class="col-12 d-none" id="seccion-dibujo-info">
             <div class="p-3 rounded-3" style="background:#f0fdf4;border:2px solid #bbf7d0">
               <div class="fw-bold small">🎨 El estudiante dibujará su respuesta</div>
-              <div class="text-muted small mt-1">Se considera correcta automáticamente y suma los puntos indicados. Podrás ver todos los dibujos en el panel de resultados del taller.</div>
+              <div class="text-muted small mt-1">Se considera correcta automáticamente y suma los XP correspondientes a este bloque. Podrás ver todos los dibujos en el panel de resultados del taller.</div>
             </div>
           </div>
         </div>
@@ -597,7 +594,6 @@ async function guardarPregunta() {
   fd.append('tipo', 'pregunta');
   fd.append('enunciado', enunciado);
   fd.append('tipo_respuesta', tipo);
-  fd.append('puntaje_parcial', document.getElementById('p-puntaje').value);
   const vid = document.getElementById('p-video-archivo').files[0];
   if (vid) fd.append('video_archivo', vid);
   fd.append('opciones', JSON.stringify(opciones));
@@ -618,7 +614,6 @@ async function guardarPregunta() {
 
 function resetModalPregunta() {
   document.getElementById('p-enunciado').value = '';
-  document.getElementById('p-puntaje').value = '10';
   document.getElementById('p-video-archivo').value = '';
   document.getElementById('p-imagen').value = '';
   opciones = [];
@@ -647,6 +642,24 @@ async function guardarMinijuego() {
 }
 
 // ── Helpers de UI ─────────────────────────────────────────────────────────────
+function actualizarHintXP() {
+  const hintEl = document.getElementById('xp-hint');
+  if (!hintEl) return;
+  const xpInput = document.getElementById('{{ form.puntos_xp.id_for_label }}');
+  const xp = xpInput ? parseInt(xpInput.value) || 0 : 0;
+  const n = listaEl.querySelectorAll('.bloque-item[data-tipo="pregunta"]').length;
+  if (n === 0 || xp === 0) { hintEl.textContent = ''; return; }
+  const base = Math.floor(xp / n);
+  const resto = xp % n;
+  if (resto === 0) {
+    hintEl.style.color = 'var(--bs-primary, #6C63FF)';
+    hintEl.textContent = `✓ Con ${n} pregunta${n > 1 ? 's' : ''}, cada una vale ${base} XP.`;
+  } else {
+    hintEl.style.color = '#f59e0b';
+    hintEl.textContent = `⚠️ Con ${n} pregunta${n > 1 ? 's' : ''}, ${resto} bloque${resto > 1 ? 's valdrán' : ' valdrá'} ${base + 1} XP y el resto ${base} XP.`;
+  }
+}
+
 function agregarBloqueUI(data) {
   const empty = document.getElementById('empty-state');
   if (empty) empty.remove();
@@ -655,6 +668,7 @@ function agregarBloqueUI(data) {
   const div = document.createElement('div');
   div.className = 'd-flex align-items-center gap-3 p-3 rounded-3 bloque-item';
   div.dataset.id = data.bloque_id;
+  div.dataset.tipo = data.tipo;
   div.style.background = esPregunta ? '#f0eeff' : '#fff5f5';
   div.style.border = `2px solid ${esPregunta ? '#d8d0ff' : '#ffd0d0'}`;
   div.innerHTML = `
@@ -668,6 +682,7 @@ function agregarBloqueUI(data) {
             onclick="eliminarBloque(${data.bloque_id}, this)">🗑️</button>
   `;
   listaEl.appendChild(div);
+  actualizarHintXP();
 }
 
 async function eliminarBloque(pk, btn) {
@@ -685,8 +700,16 @@ async function eliminarBloque(pk, btn) {
         <div class="small">Agrega preguntas o minijuegos con los botones de arriba.</div>
       </div>`;
     }
+    actualizarHintXP();
   }
 }
+
+// ── Hint XP en tiempo real ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const xpInput = document.getElementById('{{ form.puntos_xp.id_for_label }}');
+  if (xpInput) xpInput.addEventListener('input', actualizarHintXP);
+  actualizarHintXP();
+});
 </script>
 {% endif %}
 {% endblock %}
