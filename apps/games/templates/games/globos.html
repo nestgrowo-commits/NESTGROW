@@ -160,7 +160,7 @@ function buildRound() {
       <span class="glob-target-badge">${q2.question}</span>
     `;
   } else {
-    label.textContent = 'Which balloon has the correct translation of:';
+    label.textContent = 'Which balloon matches this word:';
     wrap.innerHTML = `<span class="glob-target-badge">${q1.question}</span>`;
   }
   document.getElementById('feedback').innerHTML = '';
@@ -327,7 +327,6 @@ function buildRound() {
       ${opt.image
         ? `<img src="${opt.image}" class="balloon-img" alt="${opt.word || ''}">`
         : opt.emoji ? `<div class="balloon-emoji">${opt.emoji}</div>` : ''}
-      <div class="balloon-text">${opt.word}</div>
     `;
     el.addEventListener('click', () => handleClick(el, opt));
     arena.appendChild(el);
@@ -662,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   questions = shuffle(VOCABULARY).slice(0, 10).map(v => ({
-    question: v.word_es,
+    question: v.word_en,
     answer:   v.word_en,
     emoji:    v.emoji || '',
     image:    v.image || '',
@@ -708,15 +707,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* Imagen dentro del globo — restringida al tamaño del globo (90×105) */
 .balloon-img {
-  width: 54px;
-  height: 54px;
+  width: 66px;
+  height: 66px;
   object-fit: contain;
   border-radius: 6px;
   display: block;
   pointer-events: none;
   flex-shrink: 0;
-  max-width: 76px;
-  max-height: 62px;
+  max-width: 80px;
+  max-height: 78px;
 }
 
 /* Target word badge */
