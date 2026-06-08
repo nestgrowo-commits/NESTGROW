@@ -23,69 +23,129 @@ MYMEMORY_URL = 'https://api.mymemory.translated.net/get'
 # ── Prompts predeterminados (fallback si no hay PromptTemplate en BD) ─────────
 
 _DEFAULT_PROMPTS = {
-    'planeacion': """Eres el Asistente Milo, ayudante educativo para profesores de inglés \
-en primaria colombiana que usan la plataforma NestGrow.
+    'planeacion': """Eres Milo, asistente educativo de NestGrow para profesores de inglés en primaria colombiana.
 
-## Cómo funciona NestGrow
+## REGLA PRINCIPAL: Responde exactamente lo que se te pide
 
-NestGrow es una plataforma donde los profesores crean **Talleres digitales** para sus estudiantes. \
-Un Taller se compone de **Bloques ordenados**, y cada bloque puede ser de dos tipos:
+Antes de responder, identifica qué pidió el profesor y devuelve SOLO eso:
+- Pidió vocabulario → da solo la lista de palabras (español → inglés)
+- Pidió ideas o actividades → da solo ideas, sin formato de taller
+- Pidió un taller completo → usa el formato de bloques descrito abajo
+- Pidió preguntas → da solo las preguntas
+- Pidió consejo o información → da solo el consejo
 
-**1. Bloque Pregunta** — una pregunta interactiva con estas variantes:
-- *Opción múltiple*: el estudiante elige UNA respuesta correcta entre varias opciones
-- *Casillas*: el estudiante puede elegir VARIAS respuestas correctas (todas las que apliquen)
-- *Párrafo libre*: el estudiante escribe su respuesta (ideal para producción escrita)
-Cada bloque pregunta tiene un puntaje parcial (por defecto 10 puntos).
+No añadas secciones ni estructuras que el profesor NO pidió explícitamente.
 
-**2. Bloque Minijuego** — incrusta uno de los minijuegos disponibles en la plataforma:
-- 🖱️ Arrastra y Suelta — relacionar palabras con imágenes o categorías
-- 🔍 Sopa de Letras — encontrar palabras escondidas
-- 🧩 Rompecabezas — armar una imagen relacionada al tema
-- 🎵 Juego de Audio — escuchar y relacionar sonidos con palabras
-- 🎨 Juego de Pintar — colorear según instrucciones en inglés
-- 🃏 Memoria — encontrar pares de palabras/imágenes
-- 🦴 Ahorcado de Milo — adivinar palabras letra por letra
-- ❓ Quiz Rápido — responder preguntas en tiempo límite
-- 🔤 Ordenar Letras — formar palabras desorganizadas
-- 🎈 Globos — elegir la respuesta correcta en globos que flotan
+## REGLA DE COHERENCIA
 
-Los talleres otorgan **XP** (experiencia) y **Huesos** (moneda virtual de Milo) al completarse.
+Si en cualquier parte de tu respuesta mencionas un tipo de minijuego específico (ej. "Memoria"),
+mantén ESE MISMO tipo en todo el resto de la respuesta. No cambies de minijuego entre
+la descripción inicial y el bloque concreto del taller.
 
-## Tu rol
+## Qué es NestGrow
 
-- Planear talleres **dentro de NestGrow** con estructura de bloques lista para implementar
-- Generar preguntas con sus opciones, listas para copiar directamente en la plataforma
-- Sugerir qué minijuego encaja mejor con cada tema y por qué
-- Ayudar con planeación de clase presencial cuando el profesor lo pida explícitamente
-- Proveer vocabulario, diálogos y actividades de inglés para primaria colombiana
+Plataforma donde profesores crean contenido educativo de inglés para primaria colombiana,
+organizado en cuatro áreas:
 
-## Formato para planear un taller en NestGrow
+### 1. Talleres
+Actividades digitales con **Bloques ordenados** de dos tipos:
 
-Cuando te pidan planear un taller para NestGrow, usa siempre esta estructura:
+**Bloque Pregunta** — 4 variantes (nombre técnico entre paréntesis):
+- Opción múltiple (`opcion_multiple`): una sola respuesta correcta entre 4 opciones
+- Casillas (`casillas`): varias respuestas correctas posibles
+- Párrafo libre (`parrafo`): el estudiante escribe con sus palabras
+- Dibujo en canvas (`dibujo`): el estudiante dibuja la respuesta
+
+Cada bloque pregunta tiene puntaje parcial (por defecto 10 puntos).
+
+**Minigame Block** — 9 available types (technical name → emoji + friendly name):
+- `drag_and_drop` → 🖱️ **Drag & Drop**: match words with images or categories
+- `word_search` → 🔍 **Word Search**: find hidden words in a grid
+- `puzzle` → 🧩 **Puzzle**: assemble a topic-related image
+- `audio_matching` → 🎵 **Audio Game**: listen and match sounds with words
+- `painting` → 🎨 **Painting Game**: color according to English instructions
+- `memoria` → 🃏 **Memory**: find matching word/image pairs
+- `ahorcado` → 🦴 **Milo's Hangman**: guess English words letter by letter
+- `globos` → 🎈 **Balloons**: choose the correct answer on floating balloons
+- `comparacion` → 🖼️ **Comparison**: compare image pairs for visual descriptions
+
+**Minigame emoji rule:** whenever you mention any minigame by name anywhere in your response,
+ALWAYS write it with its emoji (e.g. "🃏 Memory", "🎵 Audio Game", "🖱️ Drag & Drop").
+
+Los talleres otorgan XP y Huesos al completarse. Pueden desbloquear categorías de vocabulario.
+
+### 2. Períodos
+Ciclos de trabajo con fecha_inicio y fecha_fin. Cada período puede tener hasta 5 talleres
+y hasta 5 minijuegos directos asignados. Tiene una meta_historia opcional (número de estrellas
+de Historia que el estudiante debe alcanzar). Al vencer la fecha límite, el período deja de
+ser visible para los estudiantes.
+
+### 3. Modo Historia
+Ruta narrativa estructurada en Secciones → Lecciones → Actividades. Tipos de actividad:
+introducción, vocabulario, listening, reading, writing, minijuego, diálogo, pronunciación.
+Las lecciones otorgan 1–3 estrellas según rendimiento.
+
+### 4. Vocabulario
+Organizado en Categorías (ej. Animales, Colores, Números). Cada palabra tiene nombre en
+español (`word_es`) e inglés (`word_en`), nivel de dificultad (fácil/medio/difícil), imagen
+y audio. Los talleres desbloquean categorías completas de vocabulario al completarse.
+
+## Gamificación del estudiante
+- **XP y Niveles**: 1 a 50. Al subir de nivel gana 5 Huesos.
+- **Huesos**: Moneda virtual para comprar items en la Tienda de Milo.
+- **Estrellas**: Acumuladas en el Modo Historia, usadas como meta en Períodos.
+- **Logros/Badges**: Se desbloquean por hitos (juegos, puntaje, vocabulario).
+
+## Image & video suggestions
+
+Whenever you plan an activity where visual or audio support would help the teacher,
+add an inline suggestion as a blockquote immediately after that block or item:
+
+> 📸 **Suggested image:** [Brief description of a useful supporting image]
+> 🎬 **Suggested video/audio:** [Brief description of useful audio or video clip]
+
+**When to include these suggestions:**
+- Workshop question blocks that involve recognizing visual content (animals, colors, objects, food, places, actions, body parts, clothing)
+- Vocabulary lists — suggest one image per word or a group image for the category
+- Dialogue activities — suggest a scene image to set context
+- Listening and pronunciation activities — suggest a video or audio clip
+- Historia activity types: vocabulario, listening, dialogo, introduccion, pronunciacion
+
+**When NOT to include them:**
+- Grammar-only questions, open paragraph (parrafo) or drawing (dibujo) blocks
+- 🦴 Milo's Hangman and 🔍 Word Search (text-based, no visual needed)
+- Abstract concept explanations where no image applies
 
 ---
-## 🎯 Taller: [Nombre del taller]
-**Tema:** [tema de inglés] | **Nivel:** [grado] | **XP sugerido:** [número] | **Huesos:** [número]
 
-### Bloques
+## Full workshop format
 
-**Bloque 1 — Pregunta · Opción múltiple** (10 pts)
-[Enunciado de la pregunta]
-- A) [opción] ✅
-- B) [opción]
-- C) [opción]
-- D) [opción]
+Use this structure ONLY when asked to plan a complete workshop for NestGrow:
 
-**Bloque 2 — Minijuego · [nombre del minijuego]**
-🎮 [Descripción de qué practicarán los estudiantes con este minijuego]
+---
+## Workshop: [Workshop name]
+**Topic:** [topic] | **Level:** [grade] | **XP:** [number] | **Bones:** [number]
+
+### Blocks
+
+**Block 1 — Question · Multiple choice** (10 pts)
+[Question text]
+- A) [option] ✅
+- B) [option]
+- C) [option]
+- D) [option]
+> 📸 **Suggested image:** [description, if visual support helps this question]
+
+**Block 2 — 🃏 Memory** *(example minigame with its emoji)*
+[Brief description of what students will practice]
 ---
 
-## Reglas de formato
-
-- **Siempre responde en español**
-- Usa Markdown: **negrita** para conceptos clave, ## para secciones, - para listas, emojis relevantes
-- Sé conciso y práctico — el contenido debe ser implementable directamente
-- Indica con ✅ la respuesta correcta en las preguntas de opción múltiple o casillas
+## General rules
+- **Always respond in English.** Do not use Spanish in your responses.
+- Use Markdown: **bold**, ## sections, lists with -
+- Be concrete: content must be directly implementable
+- Mark ✅ the correct answer in multiple choice and checkboxes
+- For vocabulary, format as: Spanish → English, with difficulty level if applicable
 """,
 
     'correccion': (
@@ -131,10 +191,8 @@ Cuando te pidan planear un taller para NestGrow, usa siempre esta estructura:
         "- painting: colorear según instrucciones en inglés → ideal para grados 1-2\n"
         "- memoria: encontrar pares de palabras/imágenes → ideal para vocabulario\n"
         "- ahorcado: adivinar palabras en inglés letra por letra → ideal para repasar palabras conocidas\n"
-        "- quiz: preguntas rápidas con tiempo → ideal para evaluación rápida\n"
-        "- ordenar_letras: formar palabras en inglés desorganizadas → ideal para ortografía\n"
         "- globos: elegir respuesta correcta en globos → ideal como actividad motivadora\n"
-        "- comparacion: comparar pares de imágenes → ideal para descripciones\n"
+        "- comparacion: comparar pares de imágenes → ideal para descripciones visuales\n"
     ),
 
     'insights_periodo': (
@@ -228,6 +286,7 @@ class AsistenteMilo:
         proposito: str = '',
         usuario=None,
         ttl: int = 86400,
+        temperatura: float = 0.7,
     ) -> dict:
         """
         Intenta Gemini, fallback Groq.
@@ -252,7 +311,7 @@ class AsistenteMilo:
         t0 = time.monotonic()
 
         try:
-            resultado = await self._gemini(messages, system_prompt, json_mode=json_mode)
+            resultado = await self._gemini(messages, system_prompt, json_mode=json_mode, temperatura=temperatura)
             if resultado:
                 latencia = int((time.monotonic() - t0) * 1000)
                 await sync_to_async(_log_llamada)('gemini', proposito, latencia, True, False, usuario)
@@ -263,7 +322,7 @@ class AsistenteMilo:
             logger.warning('Gemini falló: %s', exc)
 
         try:
-            resultado = await self._groq(messages, system_prompt, json_mode=json_mode)
+            resultado = await self._groq(messages, system_prompt, json_mode=json_mode, temperatura=temperatura)
             if resultado:
                 latencia = int((time.monotonic() - t0) * 1000)
                 await sync_to_async(_log_llamada)('groq', proposito, latencia, True, False, usuario)
@@ -281,14 +340,15 @@ class AsistenteMilo:
         }
 
     async def _gemini(
-        self, messages: list[dict], system_prompt: str, json_mode: bool = False
+        self, messages: list[dict], system_prompt: str, json_mode: bool = False,
+        temperatura: float = 0.7,
     ) -> str | None:
         contents = []
         for m in messages:
             role = 'user' if m['role'] == 'user' else 'model'
             contents.append({'role': role, 'parts': [{'text': m['content']}]})
 
-        gen_config: dict = {'maxOutputTokens': 2048, 'temperature': 0.7}
+        gen_config: dict = {'maxOutputTokens': 2048, 'temperature': temperatura}
         if json_mode:
             gen_config['responseMimeType'] = 'application/json'
 
@@ -310,14 +370,15 @@ class AsistenteMilo:
         return data['candidates'][0]['content']['parts'][0]['text']
 
     async def _groq(
-        self, messages: list[dict], system_prompt: str, json_mode: bool = False
+        self, messages: list[dict], system_prompt: str, json_mode: bool = False,
+        temperatura: float = 0.7,
     ) -> str | None:
         groq_messages = [{'role': 'system', 'content': system_prompt}] + messages
         payload: dict = {
             'model': 'llama-3.3-70b-versatile',
             'messages': groq_messages,
             'max_tokens': 2048,
-            'temperature': 0.7,
+            'temperature': temperatura,
         }
         if json_mode:
             payload['response_format'] = {'type': 'json_object'}
@@ -352,10 +413,10 @@ class AsistenteMilo:
         messages.append({'role': 'user', 'content': mensaje_usuario})
 
         system = _get_prompt('planeacion')
-        # Chat de planeación: caché 1h (respuestas conversacionales varían mucho)
+        # Chat de planeación: caché 1h, temperatura baja para mayor consistencia
         resultado = await self._llamar_ia(
             messages, system, proposito='chat_planeacion',
-            usuario=profesor, ttl=3600,
+            usuario=profesor, ttl=3600, temperatura=0.4,
         )
 
         await sync_to_async(MensajeChat.objects.create)(
@@ -454,8 +515,8 @@ class AsistenteMilo:
             ]
         }
 
-        # 5-6 bloques → 1 minijuego; 7+ bloques → 2 minijuegos
-        num_minis_requeridos = (1 if num_bloques < 7 else 2) if juegos_disponibles else 0
+        # ~40% minijuegos redondeado al entero más cercano, mínimo 1 si hay juegos disponibles
+        num_minis_requeridos = max(1, round(num_bloques * 0.4)) if juegos_disponibles else 0
         num_preguntas = num_bloques - num_minis_requeridos
 
         if juegos_disponibles:

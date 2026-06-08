@@ -1,4 +1,5 @@
 import json
+import datetime
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -421,6 +422,15 @@ def mis_talleres(request):
     if category_filter:
         all_games = all_games.filter(category__id=category_filter)
 
+    expira_ms = None
+    if periodo_activo:
+        next_day = periodo_activo.fecha_fin + datetime.timedelta(days=1)
+        expira_dt = tz.make_aware(
+            datetime.datetime.combine(next_day, datetime.time.min),
+            tz.get_current_timezone()
+        )
+        expira_ms = int(expira_dt.timestamp() * 1000)
+
     return render(request, 'talleres/estudiante/mis_talleres.html', {
         'periodo_activo': periodo_activo,
         'talleres_pendientes': talleres_pendientes,
@@ -428,6 +438,7 @@ def mis_talleres(request):
         'all_games': all_games,
         'categories': categories,
         'selected_category': category_filter,
+        'expira_ms': expira_ms,
     })
 
 

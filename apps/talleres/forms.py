@@ -67,8 +67,8 @@ class PeriodoForm(forms.ModelForm):
             }),
             'color': forms.RadioSelect(attrs={'class': 'color-radio'}),
             'salon': forms.Select(attrs={'class': 'form-select'}),
-            'fecha_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'fecha_fin': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'fecha_fin': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'meta_historia': forms.NumberInput(attrs={
                 'class': 'form-control', 'min': 0,
                 'placeholder': '0 = sin meta',

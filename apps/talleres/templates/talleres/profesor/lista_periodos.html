@@ -524,11 +524,11 @@
                 <td class="text-center">
                   <a href="{% url 'games:toggle_juego' juego.pk %}"
                      class="badge rounded-pill text-decoration-none d-inline-flex align-items-center gap-1"
-                     style="font-size:0.72rem;padding:4px 10px;{% if juego.is_active %}background:#d4edda;color:#155724{% else %}background:#f8d7da;color:#721c24{% endif %}">
+                     style="font-size:0.72rem;padding:4px 10px;{% if juego.is_active %}background:#d4edda;color:#155724{% else %}background:#e0f2fe;color:#0369a1{% endif %}">
                     {% if juego.is_active %}
                       <i class="bi bi-check-circle-fill"></i>Activo
                     {% else %}
-                      <i class="bi bi-lock-fill"></i>Inactivo
+                      <i class="bi bi-bookmark-fill"></i>Para taller
                     {% endif %}
                   </a>
                 </td>

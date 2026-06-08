@@ -107,9 +107,10 @@ Tiers: Principiante (1–10), Intermedio (11–20), Avanzado (21–30), Experto 
 
 **Minigame types** (defined in `Game.GAME_TYPES`):
 `drag_and_drop`, `word_search`, `puzzle`, `audio_matching`, `painting`,
-`memoria`, `ahorcado`, `quiz`, `ordenar_letras`, `globos`.
+`memoria`, `ahorcado`, `globos`, `comparacion`.
 Each type maps to its own template in `apps/games/templates/games/`.
 The `game_detail` and `game_embed` views route to the correct template via `template_map`.
+Note: `quiz` and `ordenar_letras` do NOT exist as game types — they have no model entry nor template.
 
 **Minigame completion flow:**
 1. Student plays → JS calls `save_score` (AJAX POST to `/juegos/save-score/`)

@@ -635,3 +635,16 @@
 
 </div>
 {% endblock %}
+
+{% block extra_js %}
+{% if expira_ms %}
+<script>
+(function () {
+  var expira = {{ expira_ms }};
+  setInterval(function () {
+    if (Date.now() >= expira) window.location.reload();
+  }, 30000);
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -171,25 +171,75 @@
     font-size: 0.92rem;
     line-height: 1.55;
   }
-  /* Estilos Markdown dentro de las burbujas del asistente */
-  .msg-assistant h1,.msg-assistant h2,.msg-assistant h3 {
-    font-size: 0.98rem; font-weight: 800; margin: 0.5rem 0 0.2rem; color: #5a52cc;
+  /* ── Markdown enriquecido dentro de burbujas del asistente ── */
+  .msg-assistant h1 {
+    font-size: 1.08rem; font-weight: 900; font-family: 'Fredoka One', cursive;
+    color: #6C63FF; margin: 0.8rem 0 0.3rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid #e0dcff;
+    letter-spacing: 0.2px;
   }
-  .msg-assistant h4,.msg-assistant h5 {
-    font-size: 0.92rem; font-weight: 800; margin: 0.4rem 0 0.15rem;
+  .msg-assistant h2 {
+    font-size: 0.97rem; font-weight: 800;
+    color: #6C63FF; margin: 0.75rem 0 0.25rem;
+    background: #f0eeff; border-left: 3px solid #6C63FF;
+    padding: 0.25rem 0.6rem; border-radius: 0 8px 8px 0;
+    display: block;
   }
-  .msg-assistant ul,.msg-assistant ol { padding-left: 1.3rem; margin: 0.25rem 0; }
-  .msg-assistant li { margin-bottom: 0.15rem; }
-  .msg-assistant strong { font-weight: 800; }
-  .msg-assistant em { font-style: italic; }
-  .msg-assistant p { margin: 0.25rem 0; }
-  .msg-assistant hr { border: none; border-top: 1px solid #ddd; margin: 0.6rem 0; }
+  .msg-assistant h3 {
+    font-size: 0.94rem; font-weight: 800;
+    color: #0891b2; margin: 0.6rem 0 0.2rem;
+  }
+  .msg-assistant h4 {
+    font-size: 0.91rem; font-weight: 800;
+    color: #e65100; margin: 0.5rem 0 0.15rem;
+  }
+  .msg-assistant h5 {
+    font-size: 0.89rem; font-weight: 800;
+    color: #2e7d32; margin: 0.4rem 0 0.12rem;
+  }
+  .msg-assistant ul {
+    padding-left: 0.3rem; margin: 0.3rem 0; list-style: none;
+  }
+  .msg-assistant ul li {
+    margin-bottom: 0.22rem; padding-left: 1.1rem; position: relative;
+  }
+  .msg-assistant ul li::before {
+    content: '●'; color: #6C63FF; font-size: 0.55rem;
+    position: absolute; left: 0; top: 0.28rem;
+  }
+  .msg-assistant ol { padding-left: 1.4rem; margin: 0.3rem 0; }
+  .msg-assistant ol li { margin-bottom: 0.22rem; }
+  .msg-assistant ol li::marker { color: #6C63FF; font-weight: 800; }
+  .msg-assistant strong { font-weight: 800; color: #5a52cc; }
+  .msg-assistant em { font-style: italic; color: #777; }
+  .msg-assistant p { margin: 0.28rem 0; }
+  .msg-assistant hr {
+    border: none; margin: 0.8rem 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #c5bfff 30%, #c5bfff 70%, transparent);
+    border-radius: 2px;
+  }
   .msg-assistant code {
-    background: #e8e8f5; padding: 1px 5px; border-radius: 4px; font-size: 0.82em; font-family: monospace;
+    background: #ede8ff; color: #5a52cc;
+    padding: 1px 6px; border-radius: 5px;
+    font-size: 0.82em; font-family: monospace; font-weight: 700;
   }
   .msg-assistant blockquote {
-    border-left: 3px solid #6C63FF; margin: 0.4rem 0; padding-left: 0.7rem; color: #666;
+    border-left: 3px solid #6C63FF; margin: 0.5rem 0;
+    padding: 0.35rem 0.75rem; background: #f8f6ff;
+    border-radius: 0 10px 10px 0; color: #555;
   }
+  .msg-assistant table {
+    width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.85rem;
+  }
+  .msg-assistant th {
+    background: #6C63FF; color: white; padding: 0.3rem 0.6rem;
+    font-weight: 800; text-align: left;
+  }
+  .msg-assistant td {
+    padding: 0.25rem 0.6rem; border-bottom: 1px solid #e8e4ff;
+  }
+  .msg-assistant tr:nth-child(even) td { background: #f8f6ff; }
   .msg-motor-badge {
     display: inline-block;
     font-size: 0.65rem;
@@ -444,21 +494,21 @@
 
     <!-- Accesos rápidos -->
     <div class="quick-prompts mb-3">
-      <span style="font-size:0.8rem;color:#888;font-weight:700;align-self:center;">⚡ Rápido:</span>
-      <button class="quick-btn" data-prompt="Genera 5 preguntas sobre animales en inglés">
-        🐾 Animales en inglés
+      <span style="font-size:0.8rem;color:#888;font-weight:700;align-self:center;">⚡ Quick:</span>
+      <button class="quick-btn" data-prompt="Give me 5 vocabulary words about animals for grade 2, Spanish to English">
+        🐾 Animals vocab
       </button>
-      <button class="quick-btn" data-prompt="Dame ideas para un taller sobre los colores en inglés">
-        🎨 Taller de colores
+      <button class="quick-btn" data-prompt="Plan a complete workshop about colors in English for grade 1">
+        🎨 Colors workshop
       </button>
-      <button class="quick-btn" data-prompt="¿Cómo enseñar los números del 1 al 20 de forma lúdica?">
-        🔢 Números lúdicos
+      <button class="quick-btn" data-prompt="How can I teach numbers 1 to 20 in a fun and interactive way?">
+        🔢 Fun numbers
       </button>
-      <button class="quick-btn" data-prompt="Crea un diálogo corto en inglés para niños de primaria">
-        💬 Diálogo corto
+      <button class="quick-btn" data-prompt="Write a short dialogue in English for primary school children">
+        💬 Short dialogue
       </button>
-      <button class="quick-btn" data-prompt="Sugiere actividades de listening para esta semana">
-        🎧 Listening
+      <button class="quick-btn" data-prompt="Suggest listening activities for this week, grade 3">
+        🎧 Listening ideas
       </button>
     </div>
 
@@ -466,7 +516,7 @@
     <div class="chat-container">
       <div class="chat-header">
         <div class="milo-avatar-small">
-          🐸
+          <img src="{% static 'img/milo_rostro.png' %}" alt="Milo" style="width:32px;height:32px;object-fit:contain;">
           <span class="ia-badge">IA</span>
         </div>
         <div class="flex-grow-1">
@@ -483,16 +533,16 @@
       <div class="chat-messages" id="chatMessages">
         {% if not historial %}
         <div class="msg-assistant-wrap">
-          <div class="milo-avatar-msg">🐸<span class="ia-badge">IA</span></div>
+          <div class="milo-avatar-msg"><img src="{% static 'img/milo_rostro.png' %}" alt="Milo" style="width:26px;height:26px;object-fit:contain;"><span class="ia-badge">IA</span></div>
           <div>
-            <div class="msg-assistant" data-markdown>¡Hola, profe! 👋 Soy **Milo**, tu asistente educativo para NestGrow. Puedo ayudarte a:
+            <div class="msg-assistant" data-markdown>Hey, teacher! 👋 I'm **Milo**, your educational assistant for NestGrow. I can help you:
 
-- 🎯 **Planear talleres** con bloques listos para implementar en la plataforma
-- ❓ **Generar preguntas** de opción múltiple, casillas o párrafo libre
-- 🎮 **Sugerir minijuegos** según el tema que estés trabajando
-- 📝 **Crear vocabulario** y diálogos en inglés para primaria
+- 🎯 **Plan workshops** with ready-to-use blocks for the platform
+- ❓ **Generate questions** — multiple choice, checkboxes, or open paragraph
+- 🎮 **Suggest minigames** that match the topic you're teaching
+- 📝 **Create vocabulary lists** and dialogues in English for primary school
 
-¿En qué te ayudo hoy?</div>
+What can I help you with today?</div>
           </div>
         </div>
         {% else %}
@@ -501,7 +551,7 @@
           <div class="msg-bubble msg-user">{{ msg.contenido }}</div>
           {% else %}
           <div class="msg-assistant-wrap">
-            <div class="milo-avatar-msg">🐸<span class="ia-badge">IA</span></div>
+            <div class="milo-avatar-msg"><img src="{% static 'img/milo_rostro.png' %}" alt="Milo" style="width:26px;height:26px;object-fit:contain;"><span class="ia-badge">IA</span></div>
             <div>
               <div class="msg-assistant" data-markdown>{{ msg.contenido }}</div>
               <span class="msg-motor-badge">vía {{ msg.motor_usado }}</span>
@@ -700,7 +750,7 @@
       const wrap = document.createElement('div');
       wrap.className = 'msg-assistant-wrap';
       wrap.innerHTML = `
-        <div class="milo-avatar-msg">🐸<span class="ia-badge">IA</span></div>
+        <div class="milo-avatar-msg"><img src="{% static 'img/milo_rostro.png' %}" alt="Milo" style="width:26px;height:26px;object-fit:contain;"><span class="ia-badge">IA</span></div>
         <div>
           <div class="msg-assistant">${marked.parse(texto)}</div>
           ${motor ? `<span class="msg-motor-badge">vía ${motor}</span>` : ''}
@@ -717,7 +767,7 @@
     div.className = 'pensando-bubble';
     div.id = 'pensandoBubble';
     div.innerHTML = `
-      <div class="milo-avatar-msg">🐸<span class="ia-badge">IA</span></div>
+      <div class="milo-avatar-msg"><img src="{% static 'img/milo_rostro.png' %}" alt="Milo" style="width:26px;height:26px;object-fit:contain;"><span class="ia-badge">IA</span></div>
       <div class="pensando-dots">
         <span></span><span></span><span></span>
       </div>`;
