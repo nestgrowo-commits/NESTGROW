@@ -73,9 +73,9 @@ const DECO_COLORS    = ['#FFCDD2','#FFE0B2','#FFF9C4','#C8E6C9','#B3E5FC','#E1BE
 
 // ── Difficulty config ──────────────────────────────────────────────────────────
 const DIFF_CONFIG = {
-  1: { balloons:4, baseSpeed:0.52, dualChance:0,    fakeClones:false },
-  2: { balloons:6, baseSpeed:0.72, dualChance:0.35, fakeClones:false },
-  3: { balloons:6, baseSpeed:0.90, dualChance:0.35, fakeClones:true  },
+  1: { balloons:4, baseSpeed:0.62, dualChance:0,    fakeClones:false },
+  2: { balloons:6, baseSpeed:0.84, dualChance:0.35, fakeClones:false },
+  3: { balloons:6, baseSpeed:1.05, dualChance:0.35, fakeClones:true  },
 };
 const CFG = DIFF_CONFIG[DIFFICULTY] || DIFF_CONFIG[1];
 
@@ -202,7 +202,8 @@ function buildRound() {
   const trajectory = pickTrajectory();
   const spacing = arenaW / (options.length + 1);
   const s = CFG.baseSpeed;
-  const GAP = 148; // gap between balloons in a file
+  const GAP = 148; // gap between balloons in a file (horizontal / up)
+  const DIAG_GAP = 300; // separación entre globos diagonales (2× el anterior de 150)
 
   // ── Diagonal: normalize direction to arena aspect ratio so balloons
   //    travel true corner-to-corner regardless of arena proportions.
@@ -220,7 +221,7 @@ function buildRound() {
     el.className = 'balloon-el';
     const color = colorMap[i];
     let startX, startY, dx=0, dy=0, phase=0;
-    let subTraj=null, fromLeft=false, diagDir=null;
+    let subTraj=null, fromLeft=false, diagDir=null, zigzagDir=null;
 
     switch (trajectory) {
 
@@ -250,12 +251,12 @@ function buildRound() {
         const gIdxDU = inADU ? i : i - halfDU;
         diagDir = inADU ? 'BL_TR' : 'BR_TL';
         if (diagDir === 'BL_TR') {
-          startX = -bW - gIdxDU * GAP * diagNX;
-          startY = arenaH + bH + gIdxDU * GAP * diagNY;
+          startX = -bW - gIdxDU * DIAG_GAP * diagNX;
+          startY = arenaH + bH + gIdxDU * DIAG_GAP * diagNY;
           dx =  diagSpd * diagNX;  dy = -diagSpd * diagNY;
         } else {
-          startX = arenaW + bW + gIdxDU * GAP * diagNX;
-          startY = arenaH + bH + gIdxDU * GAP * diagNY;
+          startX = arenaW + bW + gIdxDU * DIAG_GAP * diagNX;
+          startY = arenaH + bH + gIdxDU * DIAG_GAP * diagNY;
           dx = -diagSpd * diagNX;  dy = -diagSpd * diagNY;
         }
         break;
@@ -269,32 +270,48 @@ function buildRound() {
         const gIdxDD = inADD ? i : i - halfDD;
         diagDir = inADD ? 'TL_BR' : 'TR_BL';
         if (diagDir === 'TL_BR') {
-          startX = -bW - gIdxDD * GAP * diagNX;
-          startY = -bH  - gIdxDD * GAP * diagNY;
+          startX = -bW - gIdxDD * DIAG_GAP * diagNX;
+          startY = -bH  - gIdxDD * DIAG_GAP * diagNY;
           dx =  diagSpd * diagNX;  dy =  diagSpd * diagNY;
         } else {
-          startX = arenaW + bW + gIdxDD * GAP * diagNX;
-          startY = -bH  - gIdxDD * GAP * diagNY;
+          startX = arenaW + bW + gIdxDD * DIAG_GAP * diagNX;
+          startY = -bH  - gIdxDD * DIAG_GAP * diagNY;
           dx = -diagSpd * diagNX;  dy =  diagSpd * diagNY;
         }
         break;
       }
 
       case 'zigzag': {
-        // Horizontal zigzag: balloons cross the arena sideways while oscillating
-        // up-and-down.  Two groups: even-index from RIGHT, odd-index from LEFT.
-        // Both oscillate vertically in opposite phase → DNA/wave pattern.
-        const isRight = (i % 2 === 0);
-        const zFile   = Math.floor(i / 2);
-        fromLeft = !isRight;
-        startX = isRight
-          ? arenaW + bW + zFile * (bW + 20)
-          : -bW      - zFile * (bW + 20);
-        startY = (arenaH - bH) / 2; // start at vertical center
-        dx    = isRight ? -(s * 0.62) : (s * 0.62);
-        // Staggered timing: each balloon is equally spaced across one full cycle
-        // → no two balloons move up/down simultaneously
+        // 4 grupos (reparto round-robin):
+        //  0 = horizontal der→izq  (Y oscila)
+        //  1 = horizontal izq→der  (Y oscila)
+        //  2 = vertical ascendente desde abajo (X oscila)
+        //  3 = vertical descendente desde arriba (X oscila)
+        const groupIdx = i % 4;
+        const iInG    = Math.floor(i / 4);
         phase = i * (Math.PI * 2 / options.length);
+
+        if (groupIdx === 0) {
+          zigzagDir = 'h_rl'; fromLeft = false;
+          startX = arenaW + bW + iInG * (bW + 20);
+          startY = (arenaH - bH) / 2;
+          dx = -(s * 0.62);
+        } else if (groupIdx === 1) {
+          zigzagDir = 'h_lr'; fromLeft = true;
+          startX = -(bW + iInG * (bW + 20));
+          startY = (arenaH - bH) / 2;
+          dx = s * 0.62;
+        } else if (groupIdx === 2) {
+          zigzagDir = 'v_up';
+          startX = (arenaW - bW) / 2;
+          startY = arenaH + bH + iInG * (bH + 20);
+          dy = -(s * 0.62);
+        } else {
+          zigzagDir = 'v_down';
+          startX = (arenaW - bW) / 2;
+          startY = -(bH + iInG * (bH + 20));
+          dy = s * 0.62;
+        }
         break;
       }
 
@@ -330,7 +347,7 @@ function buildRound() {
     `;
     el.addEventListener('click', () => handleClick(el, opt));
     arena.appendChild(el);
-    activeBalloons.push({ el, opt, popped:false, x:startX, y:startY, dx, dy, phase, trajectory, subTraj, fromLeft, diagDir, t:0 });
+    activeBalloons.push({ el, opt, popped:false, x:startX, y:startY, dx, dy, phase, trajectory, subTraj, fromLeft, diagDir, zigzagDir, t:0 });
   });
 
   // ── Modo Difícil: globos vacíos caóticos ──────────────────────────────────
@@ -366,10 +383,10 @@ function buildRound() {
           dDiagDir = dirs[Math.floor(Math.random()*2)];
           const di  = j;
           if (dDiagDir === 'BR_TL') {
-            sx = arenaW+bW+di*GAP*diagNX; sy = arenaH+bH+di*GAP*diagNY;
+            sx = arenaW+bW+di*DIAG_GAP*diagNX; sy = arenaH+bH+di*DIAG_GAP*diagNY;
             ddx = -ds*diagNX; ddy = -ds*diagNY;
           } else {
-            sx = -bW-di*GAP*diagNX; sy = arenaH+bH+di*GAP*diagNY;
+            sx = -bW-di*DIAG_GAP*diagNX; sy = arenaH+bH+di*DIAG_GAP*diagNY;
             ddx =  ds*diagNX; ddy = -ds*diagNY;
           }
           break;
@@ -379,10 +396,10 @@ function buildRound() {
           dDiagDir = dirs2[Math.floor(Math.random()*2)];
           const di2 = j;
           if (dDiagDir === 'TR_BL') {
-            sx = arenaW+bW+di2*GAP*diagNX; sy = -bH-di2*GAP*diagNY;
+            sx = arenaW+bW+di2*DIAG_GAP*diagNX; sy = -bH-di2*DIAG_GAP*diagNY;
             ddx = -ds*diagNX; ddy =  ds*diagNY;
           } else {
-            sx = -bW-di2*GAP*diagNX; sy = -bH-di2*GAP*diagNY;
+            sx = -bW-di2*DIAG_GAP*diagNX; sy = -bH-di2*DIAG_GAP*diagNY;
             ddx =  ds*diagNX; ddy =  ds*diagNY;
           }
           break;
@@ -419,11 +436,19 @@ function animLoop() {
     b.t++;
 
     if (b.trajectory === 'zigzag') {
-      // Move horizontally; Y oscillates (up-and-down) — two opposite-phase groups
-      b.x += b.dx;
-      const zAmp = (arenaH - bH * 2 - 30) / 2;
-      const zCtr = (arenaH - bH) / 2;
-      b.y = zCtr + Math.sin(b.t * 0.024 + b.phase) * zAmp;
+      if (b.zigzagDir === 'v_up' || b.zigzagDir === 'v_down') {
+        // Mueve vertical; X oscila (izq-der)
+        b.y += b.dy;
+        const xAmp = (arenaW - bW * 2 - 30) / 2;
+        const xCtr = (arenaW - bW) / 2;
+        b.x = xCtr + Math.sin(b.t * 0.016 + b.phase) * xAmp; // frecuencia reducida 1/3
+      } else {
+        // Mueve horizontal; Y oscila (arriba-abajo)
+        b.x += b.dx;
+        const zAmp = (arenaH - bH * 2 - 30) / 2;
+        const zCtr = (arenaH - bH) / 2;
+        b.y = zCtr + Math.sin(b.t * 0.024 + b.phase) * zAmp;
+      }
     } else {
       b.x += b.dx;
       b.y += b.dy;
@@ -461,6 +486,9 @@ function isEscaped(b, aW, aH, bW, bH) {
       return b.y < -(bH + M);
 
     case 'zigzag':
+      if (b.zigzagDir === 'v_up')   return b.y < -(bH + M);
+      if (b.zigzagDir === 'v_down') return b.y > aH + bH + M;
+      return b.fromLeft ? b.x > aW + bW + M : b.x < -(bW + M);
     case 'horizontal':
       return b.fromLeft ? b.x > aW + bW + M : b.x < -(bW + M);
 
